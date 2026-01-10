@@ -1,0 +1,13 @@
+# Ralph runtime files (created in target projects)
+progress.txt
+prd.json
+archive/
+.last-branch
+
+# OS files
+.DS_Store
+
+# Editor files
+*.swp
+*.swo
+*~
