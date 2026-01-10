@@ -49,13 +49,29 @@ Ralph is an autonomous AI agent loop that runs Claude Code CLI repeatedly to imp
 ## Running Ralph
 
 ```bash
-# Run against a project directory
+# Run against a project directory (requires existing prd.json)
 ./ralph.sh ~/Projects/my-app        # 10 iterations (default)
 ./ralph.sh ~/Projects/my-app 20     # 20 iterations
+
+# Auto-generate PRD from GitHub issues, then run
+./ralph.sh --from-issues ~/Projects/my-app --label bug
+./ralph.sh --from-issues ~/Projects/my-app --label bug,feature 20
+./ralph.sh --from-issues ~/Projects/my-app --issue 13,14,15
+./ralph.sh --from-issues ~/Projects/my-app --milestone v2.0
 
 # Check status
 ./ralph.sh status ~/Projects/my-app
 ```
+
+### From-Issues Options
+
+| Option | Description |
+|--------|-------------|
+| `--label <labels>` | Filter issues by label (comma-separated) |
+| `--issue <numbers>` | Specific issues to process (comma-separated) |
+| `--milestone <name>` | Filter issues by milestone |
+| `--repo <owner/repo>` | GitHub repository (auto-detected if not specified) |
+| `--mode <mode>` | PRD mode: `feature` or `backlog` (default: backlog) |
 
 ## Prerequisites
 
@@ -193,6 +209,59 @@ Example:
 claude /review-issues --repo owner/repo --issue 13,14,15
 claude /review-issues --repo owner/repo --label bug
 claude /review-prs --auto-merge --dependabot-only
+```
+
+## Scheduling Ralph (macOS launchd)
+
+To run Ralph automatically on a schedule, create a launchd plist:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ralph.myproject</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/ralph-cc-loop/ralph.sh</string>
+        <string>--from-issues</string>
+        <string>/path/to/myproject</string>
+        <string>--label</string>
+        <string>bug,feature</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/you/logs/ralph-myproject.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/you/logs/ralph-myproject.log</string>
+    <key>WorkingDirectory</key>
+    <string>/path/to/ralph-cc-loop</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>
+```
+
+**Install:**
+```bash
+cp com.ralph.myproject.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.ralph.myproject.plist
+```
+
+**Uninstall:**
+```bash
+launchctl unload ~/Library/LaunchAgents/com.ralph.myproject.plist
+rm ~/Library/LaunchAgents/com.ralph.myproject.plist
 ```
 
 ## Modifying Ralph

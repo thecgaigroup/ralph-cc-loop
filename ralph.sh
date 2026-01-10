@@ -2,7 +2,7 @@
 # Ralph - Long-running AI agent loop for Claude Code CLI
 # Run ./ralph.sh help for usage information
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 set -e
 
@@ -256,6 +256,114 @@ show_dry_run() {
   echo ""
 }
 
+# From-issues command function - generates PRD from GitHub issues then runs Ralph
+run_from_issues() {
+  local project_dir="$1"
+  shift
+  local labels=""
+  local repo=""
+  local issues=""
+  local milestone=""
+  local mode="backlog"
+  local iterations=10
+
+  # Parse remaining arguments
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --label|--labels)
+        labels="$2"
+        shift 2
+        ;;
+      --repo)
+        repo="$2"
+        shift 2
+        ;;
+      --issue|--issues)
+        issues="$2"
+        shift 2
+        ;;
+      --milestone)
+        milestone="$2"
+        shift 2
+        ;;
+      --mode)
+        mode="$2"
+        shift 2
+        ;;
+      [0-9]*)
+        iterations="$1"
+        shift
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+
+  echo ""
+  echo "╔═══════════════════════════════════════════════════════╗"
+  echo "║            Ralph - From Issues Mode                   ║"
+  echo "╚═══════════════════════════════════════════════════════╝"
+  echo ""
+  echo "  Project:    $project_dir"
+
+  # Auto-detect repo if not specified
+  if [ -z "$repo" ]; then
+    repo=$(cd "$project_dir" && gh repo view --json nameWithOwner -q '.nameWithOwner' 2>/dev/null || echo "")
+    if [ -z "$repo" ]; then
+      echo "Error: Could not detect GitHub repo. Use --repo owner/repo"
+      exit 1
+    fi
+  fi
+  echo "  Repository: $repo"
+
+  # Build the /review-issues command
+  local review_cmd="/review-issues --repo $repo --mode $mode"
+
+  if [ -n "$issues" ]; then
+    review_cmd="$review_cmd --issue $issues"
+    echo "  Issues:     $issues"
+  fi
+
+  if [ -n "$labels" ]; then
+    review_cmd="$review_cmd --label $labels"
+    echo "  Labels:     $labels"
+  fi
+
+  if [ -n "$milestone" ]; then
+    review_cmd="$review_cmd --milestone $milestone"
+    echo "  Milestone:  $milestone"
+  fi
+
+  echo "  Mode:       $mode"
+  echo "  Iterations: $iterations"
+  echo ""
+  echo "  Step 1: Generating PRD from GitHub issues..."
+  echo "  Command: claude $review_cmd"
+  echo ""
+
+  # Run claude /review-issues to generate the PRD
+  cd "$project_dir"
+  if ! claude --print --dangerously-skip-permissions "$review_cmd" 2>&1; then
+    echo "Error: Failed to generate PRD from issues"
+    exit 1
+  fi
+
+  # Check if prd.json was created
+  if [ ! -f "$project_dir/prd.json" ]; then
+    echo ""
+    echo "Error: prd.json was not created. No matching issues found?"
+    exit 1
+  fi
+
+  echo ""
+  echo "  Step 2: PRD generated successfully!"
+  echo ""
+
+  # Now run the normal Ralph loop by re-executing ourselves
+  exec "$0" "$project_dir" "$iterations"
+}
+
 # Help command function
 show_help() {
   cat << 'EOF'
@@ -267,6 +375,7 @@ show_help() {
 
 USAGE
   ./ralph.sh <project> [iterations]    Run Ralph on a project
+  ./ralph.sh --from-issues <project>   Generate PRD from issues, then run
   ./ralph.sh status <project>          Check PRD progress
   ./ralph.sh --dry-run <project>       Preview what Ralph would do
   ./ralph.sh help                      Show this help message
@@ -276,11 +385,24 @@ ARGUMENTS
   <project>      Path to project directory containing prd.json
   [iterations]   Max iterations to run (default: 10)
 
+FROM-ISSUES OPTIONS
+  --label <labels>      Filter issues by label (comma-separated)
+  --issue <numbers>     Specific issues to process (comma-separated)
+  --milestone <name>    Filter issues by milestone
+  --repo <owner/repo>   GitHub repository (auto-detected if not specified)
+  --mode <mode>         PRD mode: feature or backlog (default: backlog)
+
 EXAMPLES
-  ./ralph.sh ~/Projects/my-app         Run with 10 iterations
-  ./ralph.sh ~/Projects/my-app 20      Run with 20 iterations
-  ./ralph.sh status ~/Projects/my-app  Check progress
-  ./ralph.sh --dry-run ~/Projects/app  Preview without executing
+  ./ralph.sh ~/Projects/my-app              Run with existing prd.json
+  ./ralph.sh ~/Projects/my-app 20           Run with 20 iterations
+  ./ralph.sh status ~/Projects/my-app       Check progress
+  ./ralph.sh --dry-run ~/Projects/app       Preview without executing
+
+  # From-issues examples (auto-generate PRD then run):
+  ./ralph.sh --from-issues ~/Projects/app --label bug
+  ./ralph.sh --from-issues ~/Projects/app --label bug,feature 20
+  ./ralph.sh --from-issues ~/Projects/app --issue 13,14,15
+  ./ralph.sh --from-issues ~/Projects/app --milestone v2.0
 
 SKILLS (run with Claude Code in your project directory)
   claude /prd "feature description"    Create PRD interactively
@@ -288,13 +410,17 @@ SKILLS (run with Claude Code in your project directory)
   claude /review-prs --auto-merge      Review and merge pull requests
 
 WORKFLOW
+  # Manual workflow:
   1. Create PRD    claude /review-issues --issue 42
   2. Run Ralph     ./ralph.sh ~/Projects/my-app
   3. Merge PRs     claude /review-prs --auto-merge
 
-MODES (set in prd.json)
-  "mode": "feature"   Single branch, one PR at end (default)
-  "mode": "backlog"   Branch per story, PR after each
+  # Automated workflow:
+  ./ralph.sh --from-issues ~/Projects/app --label bug,feature
+
+MODES (set in prd.json or via --mode)
+  "feature"   Single branch, one PR at end (default for /prd)
+  "backlog"   Branch per story, PR after each (default for --from-issues)
 
 MORE INFO
   https://github.com/thecgaigroup/ralph-cc-loop
@@ -305,6 +431,19 @@ EOF
 # Handle help command
 if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   show_help
+  exit 0
+fi
+
+# Handle --from-issues command
+if [ "$1" = "--from-issues" ]; then
+  shift
+  if [ -n "$1" ] && [ -d "$1" ]; then
+    FROM_ISSUES_DIR="$(cd "$1" && pwd)"
+    shift
+  else
+    FROM_ISSUES_DIR="$(pwd)"
+  fi
+  run_from_issues "$FROM_ISSUES_DIR" "$@"
   exit 0
 fi
 
@@ -465,8 +604,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   # --dangerously-skip-permissions: equivalent to amp's --dangerously-allow-all
   # Run from PROJECT_DIR so Claude has correct working directory context
   # Output is logged to both stderr (terminal) and the output log file
-  # RALPH_ITERATION is exported so Claude can include it in progress.txt entries
-  OUTPUT=$(cd "$PROJECT_DIR" && RALPH_ITERATION=$i claude --print --dangerously-skip-permissions < <(echo "# Current Iteration: $i of $MAX_ITERATIONS"; echo ""; cat "$SCRIPT_DIR/prompt.md") 2>&1 | tee -a "$OUTPUT_LOG" | tee /dev/stderr) || true
+  OUTPUT=$(cd "$PROJECT_DIR" && claude --print --dangerously-skip-permissions < "$SCRIPT_DIR/prompt.md" 2>&1 | tee -a "$OUTPUT_LOG" | tee /dev/stderr) || true
   
   # Check for completion signals
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
