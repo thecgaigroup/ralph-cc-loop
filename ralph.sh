@@ -2,7 +2,15 @@
 # Ralph - Long-running AI agent loop for Claude Code CLI
 # Run ./ralph.sh help for usage information
 
+VERSION="1.0.0"
+
 set -e
+
+# Handle version command (before dependency checks so it always works)
+if [ "$1" = "--version" ] || [ "$1" = "-v" ]; then
+  echo "Ralph v$VERSION"
+  exit 0
+fi
 
 # Check dependencies
 command -v jq >/dev/null 2>&1 || { echo "Error: jq is required but not installed. Run: brew install jq"; exit 1; }
@@ -129,6 +137,7 @@ USAGE
   ./ralph.sh <project> [iterations]    Run Ralph on a project
   ./ralph.sh status <project>          Check PRD progress
   ./ralph.sh help                      Show this help message
+  ./ralph.sh --version                 Show version information
 
 ARGUMENTS
   <project>      Path to project directory containing prd.json
