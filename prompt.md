@@ -86,7 +86,7 @@ git checkout main
 
 APPEND to progress.txt (never replace, always append):
 ```
-## [Date/Time] - [Story ID]
+## [Iteration X] [Date/Time] - [Story ID]
 - What was implemented
 - Files changed
 - **Learnings for future iterations:**
@@ -95,6 +95,8 @@ APPEND to progress.txt (never replace, always append):
   - Useful context (e.g., "the evaluation panel is in component X")
 ---
 ```
+
+**Note:** The iteration number is provided by Ralph at the start of each session. Check the first line of the prompt which shows `# Current Iteration: X of Y` - use `X` as the iteration number in your progress entries.
 
 The learnings section is critical - it helps future iterations avoid repeating mistakes and understand the codebase better.
 
