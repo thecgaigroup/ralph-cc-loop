@@ -267,6 +267,9 @@ run_from_issues() {
   local mode="backlog"
   local iterations=10
 
+  # Capture script directory before any cd commands
+  local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
   # Parse remaining arguments
   while [[ $# -gt 0 ]]; do
     case $1 in
@@ -317,51 +320,104 @@ run_from_issues() {
   fi
   echo "  Repository: $repo"
 
-  # Build the /review-issues command
-  local review_cmd="/review-issues --repo $repo --mode $mode"
-
   if [ -n "$issues" ]; then
-    review_cmd="$review_cmd --issue $issues"
     echo "  Issues:     $issues"
   fi
 
   if [ -n "$labels" ]; then
-    review_cmd="$review_cmd --label $labels"
     echo "  Labels:     $labels"
   fi
 
   if [ -n "$milestone" ]; then
-    review_cmd="$review_cmd --milestone $milestone"
     echo "  Milestone:  $milestone"
   fi
 
   echo "  Mode:       $mode"
   echo "  Iterations: $iterations"
   echo ""
-  echo "  Step 1: Generating PRD from GitHub issues..."
-  echo "  Command: claude $review_cmd"
-  echo ""
+  echo "  Step 1: Fetching GitHub issues..."
 
-  # Run claude /review-issues to generate the PRD
-  cd "$project_dir"
-  if ! claude --print --dangerously-skip-permissions "$review_cmd" 2>&1; then
-    echo "Error: Failed to generate PRD from issues"
-    exit 1
+  # Build gh issue list command
+  local gh_cmd="gh issue list --repo $repo --state open --json number,title,body,labels"
+
+  if [ -n "$issues" ]; then
+    # Fetch specific issues one by one
+    local issue_data="[]"
+    IFS=',' read -ra ISSUE_ARRAY <<< "$issues"
+    for issue_num in "${ISSUE_ARRAY[@]}"; do
+      local single=$(gh issue view "$issue_num" --repo "$repo" --json number,title,body,labels 2>/dev/null || echo "")
+      if [ -n "$single" ]; then
+        issue_data=$(echo "$issue_data" | jq --argjson item "$single" '. + [$item]')
+      fi
+    done
+    ISSUES_JSON="$issue_data"
+  else
+    # Fetch by label or milestone
+    if [ -n "$labels" ]; then
+      IFS=',' read -ra LABEL_ARRAY <<< "$labels"
+      for label in "${LABEL_ARRAY[@]}"; do
+        gh_cmd="$gh_cmd --label $label"
+      done
+    fi
+    if [ -n "$milestone" ]; then
+      gh_cmd="$gh_cmd --milestone $milestone"
+    fi
+    gh_cmd="$gh_cmd --limit 20"
+    ISSUES_JSON=$($gh_cmd 2>/dev/null || echo "[]")
   fi
+
+  local issue_count=$(echo "$ISSUES_JSON" | jq 'length')
+
+  if [ "$issue_count" -eq 0 ]; then
+    echo ""
+    echo "  No open issues found matching criteria."
+    echo "  Nothing to do."
+    exit 0
+  fi
+
+  echo "  Found $issue_count issue(s)"
+  echo ""
+  echo "  Step 2: Generating PRD..."
+
+  # Generate prd.json from issues
+  local project_name=$(basename "$project_dir")
+  echo "$ISSUES_JSON" | jq --arg project "$project_name" --arg repo "$repo" --arg mode "$mode" '{
+    project: $project,
+    mode: $mode,
+    baseBranch: "main",
+    description: "Auto-generated PRD from GitHub issues",
+    githubRepo: $repo,
+    githubIssues: [.[].number],
+    plugins: { recommended: ["commit-commands"], optional: [] },
+    userStories: [to_entries[] | {
+      id: ("GH-" + (.value.number | tostring) + "-1"),
+      githubIssue: .value.number,
+      title: .value.title,
+      description: (.value.body // "No description provided" | split("\n")[0:5] | join("\n")),
+      acceptanceCriteria: ["Implementation resolves issue #\(.value.number)", "All tests pass", "Code follows project conventions"],
+      files: [],
+      dependsOn: [],
+      priority: (.key + 1),
+      passes: false,
+      notes: ""
+    }]
+  }' > "$project_dir/prd.json"
 
   # Check if prd.json was created
   if [ ! -f "$project_dir/prd.json" ]; then
     echo ""
-    echo "Error: prd.json was not created. No matching issues found?"
+    echo "Error: prd.json was not created."
     exit 1
   fi
 
+  echo "  Created prd.json with $issue_count stories"
   echo ""
-  echo "  Step 2: PRD generated successfully!"
+  echo "  Stories:"
+  jq -r '.userStories[] | "    - \(.id): \(.title)"' "$project_dir/prd.json"
   echo ""
 
   # Now run the normal Ralph loop by re-executing ourselves
-  exec "$0" "$project_dir" "$iterations"
+  exec "$script_dir/ralph.sh" "$project_dir" "$iterations"
 }
 
 # Help command function
