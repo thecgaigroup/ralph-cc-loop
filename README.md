@@ -21,6 +21,53 @@ claude /review-issues --issue 42
 claude /review-prs --auto-merge
 ```
 
+## How I Actually Use Ralph
+
+The best way to use Ralph is conversationally through Claude Code CLI. Just open a terminal, run `claude`, and talk to it:
+
+```
+You: "I want to work on my-app project at ~/Projects/my-app.
+     Can you check GitHub for open issues and help me create a PRD?"
+
+Claude: [Runs /review-issues, scans codebase, generates prd.json]
+
+You: "Looks good. Now run Ralph on it."
+
+Claude: [Runs ./ralph.sh ~/Projects/my-app]
+
+You: "How's it going?"
+
+Claude: [Runs ./ralph.sh status ~/Projects/my-app]
+
+You: "Great. Now check the PRs and merge the safe ones."
+
+Claude: [Runs /review-prs --auto-merge]
+```
+
+**This conversational approach lets you:**
+
+- **Explain what you're trying to do** in plain English - Claude figures out the commands
+- **Monitor progress** by asking "how's Ralph doing?" or "what's the status?"
+- **Open multiple sessions** - run Ralph in one terminal, chat in another
+- **Mix and match tasks** - create PRDs for different features, review PRs, check issues
+- **Get help** - ask Claude to explain what Ralph is doing or troubleshoot issues
+
+**Example multi-session workflow:**
+
+```
+# Terminal 1: Run Ralph
+~/tools/ralph-cc-loop/ralph.sh ~/Projects/my-app 20
+
+# Terminal 2: Chat with Claude while Ralph runs
+claude
+> "Check the status of Ralph on my-app"
+> "Are there any other open issues I should look at?"
+> "Create a separate PRD for issue #15"
+> "How many PRs are waiting for review?"
+```
+
+Everything happens right from the Claude Code CLI chat window - you don't need to memorize commands.
+
 ## Prerequisites
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
