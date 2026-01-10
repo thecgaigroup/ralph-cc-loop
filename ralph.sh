@@ -465,7 +465,8 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   # --dangerously-skip-permissions: equivalent to amp's --dangerously-allow-all
   # Run from PROJECT_DIR so Claude has correct working directory context
   # Output is logged to both stderr (terminal) and the output log file
-  OUTPUT=$(cd "$PROJECT_DIR" && claude --print --dangerously-skip-permissions < "$SCRIPT_DIR/prompt.md" 2>&1 | tee -a "$OUTPUT_LOG" | tee /dev/stderr) || true
+  # RALPH_ITERATION is exported so Claude can include it in progress.txt entries
+  OUTPUT=$(cd "$PROJECT_DIR" && RALPH_ITERATION=$i claude --print --dangerously-skip-permissions < <(echo "# Current Iteration: $i of $MAX_ITERATIONS"; echo ""; cat "$SCRIPT_DIR/prompt.md") 2>&1 | tee -a "$OUTPUT_LOG" | tee /dev/stderr) || true
   
   # Check for completion signals
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
