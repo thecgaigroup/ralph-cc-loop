@@ -68,6 +68,18 @@ claude
 
 Everything happens right from the Claude Code CLI chat window - you don't need to memorize commands.
 
+### Example Session
+
+Here's what it looks like in practice - chatting with Claude while Ralph runs in the background:
+
+![Ralph Progress Check](docs/images/example1.png)
+
+Ask Claude to check progress again and get an updated status table:
+
+![Ralph Progress Update](docs/images/example2.png)
+
+Claude shows you a formatted table with story status, current iteration, and context about what Ralph is working on.
+
 ## Prerequisites
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
