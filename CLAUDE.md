@@ -190,13 +190,15 @@ Common skip reasons (logged to progress.txt):
 | Skill | Purpose |
 |-------|---------|
 | `/prd` | Interactively create a PRD by breaking down a feature |
-| `/prd-from-github` | Generate PRD from GitHub issues (scans codebase for context) |
+| `/plan` | Generate PRD from GitHub issues (scans codebase for context) |
+| `/review-prs` | Review, approve, and merge GitHub PRs |
 
 Example:
 ```bash
-claude /prd-from-github --repo owner/repo --issue 13,14,15
-claude /prd-from-github --repo owner/repo --label bug
-claude /prd-from-github --repo owner/repo --milestone v2.0
+claude /plan --repo owner/repo --issue 13,14,15
+claude /plan --repo owner/repo --label bug
+claude /plan --repo owner/repo --milestone v2.0
+claude /review-prs --auto-merge --dependabot-only
 ```
 
 ## Modifying Ralph

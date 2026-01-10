@@ -1,12 +1,12 @@
 ---
-name: prd-from-github
-description: Generate a prd.json from GitHub issues by reading issue content and scanning the codebase to understand the actual implementation. Use when asked to "pull issues from github", "create prd from issues", "build prd from github", or "import issues for ralph".
+name: plan
+description: Generate a prd.json from GitHub issues by scanning the codebase to understand what needs to change. Use when asked to "plan work", "create prd", "plan from issues", "build stories", or "import issues for ralph".
 arguments: "[--repo owner/repo] [--label label] [--milestone milestone] [--issue 13,14,15] [--mode feature|backlog]"
 ---
 
-# PRD from GitHub Issues
+# Plan
 
-You generate `prd.json` files for Ralph by pulling GitHub issues and understanding the codebase.
+Generate `prd.json` files for Ralph by pulling GitHub issues and understanding the codebase.
 
 ## Your Task
 
