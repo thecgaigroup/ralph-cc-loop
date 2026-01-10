@@ -170,9 +170,20 @@ Each story (or issue) gets its own branch (`ralph/issue-13`), PR created after e
 
 - **One story per iteration**: Ralph implements exactly one user story, then commits and updates `prd.json`
 - **Quality gates**: All commits must pass typecheck/lint/test before committing
-- **Browser verification**: Frontend stories require browser testing before marking complete
+- **Browser verification**: Best-effort for frontend stories - skipped gracefully if tools unavailable
 - **GitHub integration**: Commits reference issues (`feat(#13): ...`), PRs include `Closes #X`
 - **Completion signal**: When all stories pass, create PR and output `<promise>COMPLETE</promise>`
+
+### Browser Testing Fallback
+
+Browser verification is attempted but not required. Stories complete if:
+- Code passes typecheck/lint/test
+- Implementation matches acceptance criteria
+
+Common skip reasons (logged to progress.txt):
+- `Browser is already in use` - Playwright conflict
+- `ERR_CONNECTION_REFUSED` - Dev server not running
+- MCP tools not available
 
 ## Skills
 

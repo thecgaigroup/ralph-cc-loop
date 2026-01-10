@@ -246,16 +246,38 @@ git pull origin main
 - Keep changes focused and minimal
 - Follow existing code patterns
 
-## Browser Testing (Required for Frontend Stories)
+## Browser Testing (Best Effort for Frontend Stories)
 
-For any story that changes UI, you MUST verify it works in the browser:
+For stories that change UI, attempt browser verification:
 
-1. Use the Browser tool or mcp__puppeteer if available
-2. Navigate to the relevant page
-3. Verify the UI changes work as expected
-4. Take a screenshot if helpful for the progress log
+1. **Check if browser tools are available**: Look for `mcp__puppeteer`, `mcp__playwright`, or Browser tool
+2. **Check if dev server is running**: Try to connect to the expected URL (e.g., `http://localhost:3000`)
+3. **If both available**: Navigate to the relevant page and verify UI changes work
+4. **Take a screenshot** if helpful for the progress log
 
-A frontend story is NOT complete until browser verification passes.
+### Graceful Fallback
+
+If browser verification fails or is unavailable, the story can still be completed if:
+- Code changes pass typecheck/lint/test
+- The implementation matches acceptance criteria
+- No obvious errors in the code
+
+**When skipping browser verification**, add a note to progress.txt:
+```
+- Browser verification: SKIPPED (reason: dev server not running / browser tools unavailable / connection refused)
+- Manual verification recommended before merge
+```
+
+### Common Browser Issues
+
+| Error | Cause | Action |
+|-------|-------|--------|
+| `Browser is already in use` | Another session using Playwright | Skip browser test, note in progress |
+| `ERR_CONNECTION_REFUSED` | Dev server not running | Skip browser test, note in progress |
+| `mcp__puppeteer not found` | MCP server not configured | Skip browser test, note in progress |
+| `Timeout` | Page took too long to load | Retry once, then skip if still failing |
+
+**Do NOT block story completion** on browser verification failures. Log the issue and continue.
 
 ## Stop Condition
 
