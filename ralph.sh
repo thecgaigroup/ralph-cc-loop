@@ -1,19 +1,6 @@
 #!/bin/bash
 # Ralph - Long-running AI agent loop for Claude Code CLI
-# Usage: ./ralph.sh [project_dir] [max_iterations]
-#        ./ralph.sh status [project_dir]
-#
-# Examples:
-#   ./ralph.sh                     # Run in current directory, 10 iterations
-#   ./ralph.sh 20                  # Run in current directory, 20 iterations
-#   ./ralph.sh ~/Projects/my-app   # Run against my-app, 10 iterations
-#   ./ralph.sh ~/Projects/my-app 20 # Run against my-app, 20 iterations
-#   ./ralph.sh status              # Show status for current directory
-#   ./ralph.sh status ~/Projects/my-app  # Show status for my-app
-#
-# Modes (set in prd.json):
-#   "mode": "feature"  - Single branch, one PR at end (default)
-#   "mode": "backlog"  - Branch per story/issue, PR after each
+# Run ./ralph.sh help for usage information
 
 set -e
 
@@ -128,6 +115,55 @@ show_status() {
   echo "  Legend: ✓ complete  ○ ready  ⊘ blocked"
   echo ""
 }
+
+# Help command function
+show_help() {
+  cat << 'EOF'
+
+  ╦═╗┌─┐┬  ┌─┐┬ ┬
+  ╠╦╝├─┤│  ├─┘├─┤
+  ╩╚═┴ ┴┴─┘┴  ┴ ┴
+  Autonomous AI Agent Loop
+
+USAGE
+  ./ralph.sh <project> [iterations]    Run Ralph on a project
+  ./ralph.sh status <project>          Check PRD progress
+  ./ralph.sh help                      Show this help message
+
+ARGUMENTS
+  <project>      Path to project directory containing prd.json
+  [iterations]   Max iterations to run (default: 10)
+
+EXAMPLES
+  ./ralph.sh ~/Projects/my-app         Run with 10 iterations
+  ./ralph.sh ~/Projects/my-app 20      Run with 20 iterations
+  ./ralph.sh status ~/Projects/my-app  Check progress
+
+SKILLS (run with Claude Code in your project directory)
+  claude /prd "feature description"    Create PRD interactively
+  claude /review-issues --issue 42     Generate PRD from GitHub issues
+  claude /review-prs --auto-merge      Review and merge pull requests
+
+WORKFLOW
+  1. Create PRD    claude /review-issues --issue 42
+  2. Run Ralph     ./ralph.sh ~/Projects/my-app
+  3. Merge PRs     claude /review-prs --auto-merge
+
+MODES (set in prd.json)
+  "mode": "feature"   Single branch, one PR at end (default)
+  "mode": "backlog"   Branch per story, PR after each
+
+MORE INFO
+  https://github.com/thecgaigroup/ralph-cc-loop
+
+EOF
+}
+
+# Handle help command
+if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  show_help
+  exit 0
+fi
 
 # Handle status command
 if [ "$1" = "status" ]; then
