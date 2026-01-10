@@ -8,17 +8,63 @@ This is a fork of [Ralph](https://github.com/snarktank/ralph) adapted for **Clau
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
 - `jq` installed (`brew install jq` on macOS)
+- `gh` (GitHub CLI) installed and authenticated
 - A git repository for your project
 - Claude Code Max subscription ($200/month) recommended for heavy usage
 
-## Setup
+### GitHub CLI Setup
 
-### Option 1: Keep Ralph in one place (recommended)
-
-Keep ralph.sh and prompt.md in a dedicated folder. Only create `prd.json` in each project.
+Ralph uses `gh` for creating PRs and fetching issues:
 
 ```bash
-# Clone or keep Ralph somewhere permanent
+# Install GitHub CLI
+brew install gh
+
+# Authenticate (one-time)
+gh auth login
+```
+
+The repository is auto-detected from git remote, or you can specify `githubRepo` in prd.json.
+
+## Architecture: Run From Here, Point At Projects
+
+Ralph runs from its install directory and operates on target projects on the same machine.
+
+```
+LOCAL MACHINE
+├── ~/tools/ralph-cc-loop/    ← Ralph install (run from here)
+│   ├── ralph.sh
+│   ├── prompt.md
+│   └── skills/
+│
+├── ~/Projects/my-app/        ← Target project A
+│   ├── prd.json              ← Ralph reads this
+│   ├── progress.txt          ← Ralph writes here
+│   └── src/...
+│
+└── ~/Projects/other-app/     ← Target project B
+    ├── prd.json
+    └── ...
+```
+
+### Multiple Projects
+
+Run separate terminal sessions for each project:
+
+```bash
+# Terminal 1
+./ralph.sh ~/Projects/my-app
+
+# Terminal 2
+./ralph.sh ~/Projects/other-app
+```
+
+Projects don't share state. Each has its own `prd.json`, `progress.txt`, and logs.
+
+## Setup
+
+```bash
+# Clone Ralph to a permanent location
 git clone https://github.com/thecgaigroup/ralph-cc-loop ~/tools/ralph-cc-loop
 
 # Optional: add alias to your shell config
@@ -30,16 +76,6 @@ Then run against any project:
 ~/tools/ralph-cc-loop/ralph.sh ~/Projects/my-app
 # or with alias:
 ralph ~/Projects/my-app
-```
-
-### Option 2: Copy to your project
-
-If you prefer self-contained projects:
-
-```bash
-cp ralph.sh prompt.md prd.json.example /path/to/your/project/
-cd /path/to/your/project
-./ralph.sh
 ```
 
 ## Workflow
@@ -96,6 +132,53 @@ Use the optional `dependsOn` field to ensure stories execute in the correct orde
 - Stories with unmet dependencies are skipped until their dependencies pass
 - Dependencies are specified as an array of story IDs
 - Use dependencies when a story requires code/schema from another story
+
+### Modes: Feature vs Backlog
+
+Ralph supports two modes via the `mode` field:
+
+**Feature Mode** (default) - Single branch, one PR at end:
+```json
+{
+  "mode": "feature",
+  "branchName": "ralph/my-feature"
+}
+```
+
+**Backlog Mode** - Branch per story/issue, PR after each:
+```json
+{
+  "mode": "backlog",
+  "baseBranch": "main"
+}
+```
+
+Use backlog mode for independent bug fixes or tech debt tasks.
+
+### GitHub Integration
+
+Link stories to GitHub issues for automatic PR creation with `Closes #X`:
+
+```json
+{
+  "githubRepo": "owner/repo",
+  "githubIssues": [13, 14],
+  "userStories": [
+    {
+      "id": "GH-13-1",
+      "githubIssue": 13,
+      "title": "Fix audio playback",
+      ...
+    }
+  ]
+}
+```
+
+Generate PRDs from GitHub issues using the skill:
+```bash
+claude /prd-from-github --repo owner/repo --issue 13,14,15
+claude /prd-from-github --label bug --mode backlog
+```
 
 ### 2. Run Ralph
 
@@ -201,14 +284,35 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `ralph.sh` | The bash loop that spawns fresh Claude Code instances |
-| `prompt.md` | Instructions given to each Claude Code instance |
-| `prd.json` | User stories with `passes` status (the task list) |
-| `prd.json.example` | Example PRD format for reference |
-| `progress.txt` | Append-only learnings for future iterations |
-| `ralph-output.log` | Full Claude output from all iterations |
+| File | Location | Purpose |
+|------|----------|---------|
+| `ralph.sh` | Ralph install | The bash loop that spawns Claude Code instances |
+| `prompt.md` | Ralph install | Instructions given to each Claude Code instance |
+| `skills/` | Ralph install | Skills like `/prd-from-github` |
+| `prd.json` | Target project | User stories with `passes` status |
+| `progress.txt` | Target project | Append-only learnings (created by Ralph) |
+| `ralph-output.log` | Target project | Full Claude output (created by Ralph) |
+| `archive/` | Target project | Previous run archives (created by Ralph) |
+
+## File Attribution
+
+All Ralph-generated files include clear attribution for tracking:
+
+**In target project:**
+- `progress.txt` - Header includes project name and Ralph attribution
+- `ralph-output.log` - Header includes project name and Ralph attribution
+- Commits end with `🤖 Generated by Ralph`
+- PRs include `🤖 Generated by Ralph` in the body
+
+**Archive organization:**
+```
+archive/
+└── my-project/
+    └── 2024-01-10-feature-name/
+        ├── prd.json
+        ├── progress.txt
+        └── ralph-output.log
+```
 
 ## Differences from Amp Version
 

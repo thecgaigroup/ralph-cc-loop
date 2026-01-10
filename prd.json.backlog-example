@@ -1,0 +1,58 @@
+{
+  "project": "Bug Backlog",
+  "mode": "backlog",
+  "baseBranch": "main",
+  "description": "Independent bug fixes from GitHub issues",
+  "githubRepo": "thecgaigroup/aimusicgenerator",
+  "githubIssues": [13, 14, 15],
+  "plugins": {
+    "recommended": ["security-guidance", "commit-commands"]
+  },
+  "userStories": [
+    {
+      "id": "GH-13-1",
+      "githubIssue": 13,
+      "title": "Fix S3 URL handling in audio player",
+      "description": "Convert S3 URLs to presigned URLs for playback",
+      "acceptanceCriteria": [
+        "S3 URLs are converted to presigned URLs",
+        "Audio plays successfully",
+        "Typecheck passes"
+      ],
+      "files": ["apps/web/src/lib/url-utils.ts"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Independent fix - can be merged separately"
+    },
+    {
+      "id": "GH-14-1",
+      "githubIssue": 14,
+      "title": "Fix file upload size validation",
+      "description": "Validate file size before upload starts",
+      "acceptanceCriteria": [
+        "Files over 100MB show error before upload",
+        "Error message is user-friendly",
+        "Typecheck passes"
+      ],
+      "files": ["apps/web/src/components/Upload.tsx"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Independent fix - can be merged separately"
+    },
+    {
+      "id": "GH-15-1",
+      "githubIssue": 15,
+      "title": "Fix timezone display in job history",
+      "description": "Show timestamps in user's local timezone",
+      "acceptanceCriteria": [
+        "Timestamps show in local timezone",
+        "Tooltip shows UTC time",
+        "Typecheck passes"
+      ],
+      "files": ["apps/web/src/components/JobHistory.tsx"],
+      "priority": 3,
+      "passes": false,
+      "notes": "Independent fix - can be merged separately"
+    }
+  ]
+}

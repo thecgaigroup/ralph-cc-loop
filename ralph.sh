@@ -10,12 +10,24 @@
 #   ./ralph.sh ~/Projects/my-app 20 # Run against my-app, 20 iterations
 #   ./ralph.sh status              # Show status for current directory
 #   ./ralph.sh status ~/Projects/my-app  # Show status for my-app
+#
+# Modes (set in prd.json):
+#   "mode": "feature"  - Single branch, one PR at end (default)
+#   "mode": "backlog"  - Branch per story/issue, PR after each
 
 set -e
 
 # Check dependencies
-command -v jq >/dev/null 2>&1 || { echo "Error: jq is required but not installed"; exit 1; }
-command -v claude >/dev/null 2>&1 || { echo "Error: claude CLI is required but not installed"; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "Error: jq is required but not installed. Run: brew install jq"; exit 1; }
+command -v claude >/dev/null 2>&1 || { echo "Error: claude CLI is required but not installed. See: https://docs.anthropic.com/claude-code"; exit 1; }
+command -v gh >/dev/null 2>&1 || { echo "Error: gh (GitHub CLI) is required but not installed. Run: brew install gh"; exit 1; }
+
+# Check GitHub authentication
+if ! gh auth status >/dev/null 2>&1; then
+  echo "Error: GitHub CLI is not authenticated."
+  echo "Run: gh auth login"
+  exit 1
+fi
 
 # Status command function
 show_status() {
@@ -37,6 +49,7 @@ show_status() {
   # Get project info
   local project_name=$(jq -r '.project // "Unknown"' "$prd_file")
   local branch_name=$(jq -r '.branchName // "Unknown"' "$prd_file")
+  local mode=$(jq -r '.mode // "feature"' "$prd_file")
 
   # Count stories by status
   local total=$(jq '.userStories | length' "$prd_file")
@@ -74,7 +87,12 @@ show_status() {
   echo "╚═══════════════════════════════════════════════════════╝"
   echo ""
   echo "  Project:  $project_name"
-  echo "  Branch:   $branch_name"
+  echo "  Mode:     $mode"
+  if [ "$mode" = "backlog" ]; then
+    echo "  Base:     $(jq -r '.baseBranch // "main"' "$prd_file")"
+  else
+    echo "  Branch:   $branch_name"
+  fi
   echo "  Location: $project_dir"
   echo ""
   echo "  Stories:  $completed/$total complete"
@@ -154,14 +172,17 @@ LAST_BRANCH_FILE="$PROJECT_DIR/.last-branch"
 if [ -f "$PRD_FILE" ] && jq empty "$PRD_FILE" 2>/dev/null && [ -f "$LAST_BRANCH_FILE" ]; then
   CURRENT_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
   LAST_BRANCH=$(cat "$LAST_BRANCH_FILE" 2>/dev/null || echo "")
-  
+  PREV_PROJECT=$(jq -r '.project // "unknown"' "$PRD_FILE" 2>/dev/null || echo "unknown")
+
   if [ -n "$CURRENT_BRANCH" ] && [ -n "$LAST_BRANCH" ] && [ "$CURRENT_BRANCH" != "$LAST_BRANCH" ]; then
-    # Archive the previous run
+    # Archive the previous run - organize by project name
     DATE=$(date +%Y-%m-%d)
+    # Sanitize project name for folder (replace spaces with dashes, lowercase)
+    SAFE_PROJECT=$(echo "$PREV_PROJECT" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-')
     # Strip "ralph/" prefix from branch name for folder
     FOLDER_NAME=${LAST_BRANCH#ralph/}
-    ARCHIVE_FOLDER="$ARCHIVE_DIR/$DATE-$FOLDER_NAME"
-    
+    ARCHIVE_FOLDER="$ARCHIVE_DIR/$SAFE_PROJECT/$DATE-$FOLDER_NAME"
+
     echo "Archiving previous run: $LAST_BRANCH"
     mkdir -p "$ARCHIVE_FOLDER"
     [ -f "$PRD_FILE" ] && cp "$PRD_FILE" "$ARCHIVE_FOLDER/"
@@ -169,14 +190,8 @@ if [ -f "$PRD_FILE" ] && jq empty "$PRD_FILE" 2>/dev/null && [ -f "$LAST_BRANCH_
     [ -f "$OUTPUT_LOG" ] && cp "$OUTPUT_LOG" "$ARCHIVE_FOLDER/"
     echo "   Archived to: $ARCHIVE_FOLDER"
 
-    # Reset files for new run
-    echo "# Ralph Progress Log" > "$PROGRESS_FILE"
-    echo "Started: $(date)" >> "$PROGRESS_FILE"
-    echo "---" >> "$PROGRESS_FILE"
-
-    # Reset output log for new run
-    echo "# Ralph Output Log - $(date)" > "$OUTPUT_LOG"
-    echo "---" >> "$OUTPUT_LOG"
+    # Reset files will be done after we read new project name below
+    rm -f "$PROGRESS_FILE" "$OUTPUT_LOG"
   fi
 fi
 
@@ -200,22 +215,44 @@ if ! jq empty "$PRD_FILE" 2>/dev/null; then
   exit 1
 fi
 
+# Get project name from PRD for attribution
+PROJECT_NAME=$(jq -r '.project // "Unknown Project"' "$PRD_FILE")
+
 # Initialize progress file if it doesn't exist
 if [ ! -f "$PROGRESS_FILE" ]; then
-  echo "# Ralph Progress Log" > "$PROGRESS_FILE"
-  echo "Started: $(date)" >> "$PROGRESS_FILE"
-  echo "---" >> "$PROGRESS_FILE"
+  cat > "$PROGRESS_FILE" << EOF
+# Ralph Progress Log
+# Project: $PROJECT_NAME
+# Location: $PROJECT_DIR
+# Started: $(date)
+#
+# This file is generated and maintained by Ralph.
+# See: https://github.com/thecgaigroup/ralph-cc-loop
+---
+EOF
 fi
 
 # Initialize output log if it doesn't exist
 if [ ! -f "$OUTPUT_LOG" ]; then
-  echo "# Ralph Output Log - $(date)" > "$OUTPUT_LOG"
-  echo "---" >> "$OUTPUT_LOG"
+  cat > "$OUTPUT_LOG" << EOF
+# Ralph Output Log
+# Project: $PROJECT_NAME
+# Location: $PROJECT_DIR
+# Started: $(date)
+#
+# This file contains full Claude output from all Ralph iterations.
+# See: https://github.com/thecgaigroup/ralph-cc-loop
+---
+EOF
 fi
+
+# Get mode from PRD
+MODE=$(jq -r '.mode // "feature"' "$PRD_FILE")
 
 echo "Starting Ralph (Claude Code)"
 echo "  Project:    $PROJECT_DIR"
 echo "  PRD:        $PRD_FILE"
+echo "  Mode:       $MODE"
 echo "  Iterations: $MAX_ITERATIONS"
 echo "  Output log: $OUTPUT_LOG"
 
@@ -240,19 +277,40 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   # Output is logged to both stderr (terminal) and the output log file
   OUTPUT=$(cd "$PROJECT_DIR" && claude --print --dangerously-skip-permissions < "$SCRIPT_DIR/prompt.md" 2>&1 | tee -a "$OUTPUT_LOG" | tee /dev/stderr) || true
   
-  # Check for completion signal
+  # Check for completion signals
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
     echo ""
-    echo "Ralph completed all tasks!"
-    echo "Completed at iteration $i of $MAX_ITERATIONS"
+    echo "═══════════════════════════════════════════════════════"
+    echo "  Ralph completed all tasks!"
+    echo "  Mode: $MODE"
+    echo "  Completed at iteration $i of $MAX_ITERATIONS"
+    echo "═══════════════════════════════════════════════════════"
     exit 0
   fi
-  
+
+  if echo "$OUTPUT" | grep -q "<promise>BACKLOG_EMPTY</promise>"; then
+    echo ""
+    echo "═══════════════════════════════════════════════════════"
+    echo "  Backlog empty - no eligible stories remaining"
+    echo "  Completed at iteration $i of $MAX_ITERATIONS"
+    echo "═══════════════════════════════════════════════════════"
+    echo ""
+    echo "Add more stories to prd.json and run again, or check"
+    echo "if any stories are blocked by unmet dependencies."
+    exit 0
+  fi
+
   echo "Iteration $i complete. Continuing..."
   sleep 2
 done
 
 echo ""
-echo "Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks."
+echo "═══════════════════════════════════════════════════════"
+echo "  Ralph reached max iterations ($MAX_ITERATIONS)"
+echo "═══════════════════════════════════════════════════════"
+echo ""
 echo "Check $PROGRESS_FILE for status."
+if [ "$MODE" = "backlog" ]; then
+  echo "Run again to continue processing the backlog."
+fi
 exit 1
