@@ -1,7 +1,11 @@
 {
   "project": "MyApp",
+  "mode": "feature",
   "branchName": "ralph/task-priority",
+  "baseBranch": "main",
   "description": "Task Priority System - Add priority levels to tasks",
+  "githubRepo": "owner/repo",
+  "githubIssues": [42],
   "plugins": {
     "recommended": [
       "security-guidance",
@@ -19,6 +23,7 @@
   "userStories": [
     {
       "id": "US-001",
+      "githubIssue": 42,
       "title": "Add priority field to database",
       "description": "As a developer, I need to store task priority so it persists across sessions.",
       "acceptanceCriteria": [
@@ -26,27 +31,30 @@
         "Generate and run migration successfully",
         "Typecheck passes"
       ],
+      "files": ["db/schema.ts", "db/migrations/"],
       "priority": 1,
       "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
+      "githubIssue": 42,
       "title": "Display priority indicator on task cards",
       "description": "As a user, I want to see task priority at a glance.",
       "dependsOn": ["US-001"],
       "acceptanceCriteria": [
         "Each task card shows colored priority badge (red=high, yellow=medium, gray=low)",
         "Priority visible without hovering or clicking",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Typecheck passes"
       ],
+      "files": ["src/components/TaskCard.tsx"],
       "priority": 2,
       "passes": false,
       "notes": "Depends on US-001 for the priority field to exist"
     },
     {
       "id": "US-003",
+      "githubIssue": 42,
       "title": "Add priority selector to task edit",
       "description": "As a user, I want to change a task's priority when editing it.",
       "dependsOn": ["US-001"],
@@ -54,15 +62,16 @@
         "Priority dropdown in task edit modal",
         "Shows current priority as selected",
         "Saves immediately on selection change",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Typecheck passes"
       ],
+      "files": ["src/components/TaskEditModal.tsx"],
       "priority": 3,
       "passes": false,
       "notes": "Depends on US-001 for the priority field to exist"
     },
     {
       "id": "US-004",
+      "githubIssue": 42,
       "title": "Filter tasks by priority",
       "description": "As a user, I want to filter the task list to see only high-priority items.",
       "dependsOn": ["US-001", "US-002"],
@@ -70,9 +79,9 @@
         "Filter dropdown with options: All | High | Medium | Low",
         "Filter persists in URL params",
         "Empty state message when no tasks match filter",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Typecheck passes"
       ],
+      "files": ["src/components/TaskList.tsx", "src/hooks/useTaskFilters.ts"],
       "priority": 4,
       "passes": false,
       "notes": "Depends on US-001 (priority field) and US-002 (priority display)"

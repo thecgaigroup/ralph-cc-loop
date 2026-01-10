@@ -102,24 +102,66 @@ Stories should be ordered by dependency:
 
 **Note:** Priority determines order among *eligible* stories. A high-priority story blocked by dependencies will wait for its dependencies to complete first.
 
-## Step 4: Generate the PRD
+## Step 4: Determine Mode
+
+Ask the user which mode fits their use case:
+
+**Feature Mode** (default) - For cohesive features:
+- Single branch for all stories
+- One PR when all stories complete
+- Use when stories are related and build on each other
+
+**Backlog Mode** - For independent tasks:
+- New branch per story/issue
+- PR created after each story
+- Use for unrelated bug fixes or tech debt
+
+## Step 5: Generate the PRD
 
 Create the complete prd.json:
 
 ```json
 {
   "project": "Project Name",
+  "mode": "feature",
   "branchName": "ralph/feature-name",
+  "baseBranch": "main",
   "description": "Brief description of what this PRD accomplishes",
+  "githubRepo": "owner/repo",
+  "githubIssues": [42],
   "plugins": {
     "recommended": ["security-guidance", "commit-commands"],
     "optional": ["frontend-design", "typescript-lsp"]
   },
   "userStories": [
-    // ... stories here
+    {
+      "id": "US-001",
+      "githubIssue": 42,
+      "title": "Story title",
+      "description": "User story description",
+      "acceptanceCriteria": ["..."],
+      "files": ["src/relevant-file.ts"],
+      "dependsOn": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    }
   ]
 }
 ```
+
+### Key Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `mode` | No | `"feature"` (default) or `"backlog"` |
+| `branchName` | Feature mode | Branch for all stories |
+| `baseBranch` | No | Base branch (default: `main`) |
+| `githubRepo` | No | For PR creation (auto-detected if not set) |
+| `githubIssues` | No | Issue numbers this PRD addresses |
+| `githubIssue` | No | Per-story issue link |
+| `files` | No | Relevant files for each story |
+| `dependsOn` | No | Story IDs that must complete first |
 
 ### Branch Naming
 
@@ -128,14 +170,14 @@ Use `ralph/` prefix followed by kebab-case feature name:
 - `ralph/task-priorities`
 - `ralph/dashboard-widgets`
 
-## Step 5: Review with User
+## Step 6: Review with User
 
 Before saving, show the user:
 1. Total number of stories
-2. The story breakdown (id, title, priority)
+2. The story breakdown (id, title, priority, dependencies)
 3. Ask if any stories need to be split further or combined
 
-## Step 6: Save the File
+## Step 7: Save the File
 
 Write the prd.json to the target project directory.
 

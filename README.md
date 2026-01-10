@@ -4,6 +4,23 @@ An autonomous AI agent loop that runs Claude Code CLI repeatedly until all PRD i
 
 This is a fork of [Ralph](https://github.com/snarktank/ralph) adapted for **Claude Code CLI** instead of Amp.
 
+## Quick Start
+
+```bash
+# 1. Clone Ralph
+git clone https://github.com/thecgaigroup/ralph-cc-loop ~/tools/ralph-cc-loop
+
+# 2. Create a PRD from GitHub issues (in your project)
+cd ~/Projects/my-app
+claude /review-issues --issue 42
+
+# 3. Run Ralph
+~/tools/ralph-cc-loop/ralph.sh ~/Projects/my-app
+
+# 4. Review and merge PRs when done
+claude /review-prs --auto-merge
+```
+
 ## Prerequisites
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
@@ -174,10 +191,15 @@ Link stories to GitHub issues for automatic PR creation with `Closes #X`:
 }
 ```
 
-Generate PRDs from GitHub issues using the skill:
+Generate PRDs from GitHub issues using the `/review-issues` skill:
 ```bash
 claude /review-issues --repo owner/repo --issue 13,14,15
 claude /review-issues --label bug --mode backlog
+```
+
+Or create PRDs interactively with `/prd`:
+```bash
+claude /prd "Add user authentication to the app"
 ```
 
 ### 2. Run Ralph
@@ -293,6 +315,56 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 | `progress.txt` | Target project | Append-only learnings (created by Ralph) |
 | `ralph-output.log` | Target project | Full Claude output (created by Ralph) |
 | `archive/` | Target project | Previous run archives (created by Ralph) |
+
+## Skills
+
+Ralph includes three skills for common workflows:
+
+### `/prd` - Create PRD Interactively
+
+Create a PRD by describing your feature - Claude will break it down into right-sized stories:
+
+```bash
+claude /prd "Add task priority system with high/medium/low levels"
+```
+
+### `/review-issues` - Generate PRD from GitHub Issues
+
+Pull GitHub issues and scan the codebase to generate a PRD with proper file references:
+
+```bash
+# Single issue
+claude /review-issues --issue 42
+
+# Multiple issues
+claude /review-issues --issue 13,14,15
+
+# By label
+claude /review-issues --label bug --mode backlog
+
+# By milestone
+claude /review-issues --milestone v2.0
+```
+
+### `/review-prs` - Review and Merge Pull Requests
+
+Review, approve, and merge PRs with intelligent handling of Dependabot updates:
+
+```bash
+# Review all PRs, auto-merge safe ones
+claude /review-prs --auto-merge
+
+# Just Dependabot PRs
+claude /review-prs --dependabot-only --auto-merge
+
+# Review a specific PR
+claude /review-prs --pr 14
+```
+
+**Dependabot auto-merge rules:**
+- Patch updates (`1.0.0 → 1.0.1`): Auto-merge if CI passes
+- Minor updates (`1.0.0 → 1.1.0`): Auto-merge if CI passes
+- Major updates (`1.0.0 → 2.0.0`): Flagged for human review
 
 ## File Attribution
 
