@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/ralph.png" alt="Ralph" width="400">
+</p>
+
 # Ralph for Claude Code CLI
 
 An autonomous AI agent loop that runs Claude Code CLI repeatedly until all PRD items are complete.
