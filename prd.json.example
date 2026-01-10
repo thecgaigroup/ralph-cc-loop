@@ -34,6 +34,7 @@
       "id": "US-002",
       "title": "Display priority indicator on task cards",
       "description": "As a user, I want to see task priority at a glance.",
+      "dependsOn": ["US-001"],
       "acceptanceCriteria": [
         "Each task card shows colored priority badge (red=high, yellow=medium, gray=low)",
         "Priority visible without hovering or clicking",
@@ -42,12 +43,13 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": ""
+      "notes": "Depends on US-001 for the priority field to exist"
     },
     {
       "id": "US-003",
       "title": "Add priority selector to task edit",
       "description": "As a user, I want to change a task's priority when editing it.",
+      "dependsOn": ["US-001"],
       "acceptanceCriteria": [
         "Priority dropdown in task edit modal",
         "Shows current priority as selected",
@@ -57,12 +59,13 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": ""
+      "notes": "Depends on US-001 for the priority field to exist"
     },
     {
       "id": "US-004",
       "title": "Filter tasks by priority",
       "description": "As a user, I want to filter the task list to see only high-priority items.",
+      "dependsOn": ["US-001", "US-002"],
       "acceptanceCriteria": [
         "Filter dropdown with options: All | High | Medium | Low",
         "Filter persists in URL params",
@@ -72,7 +75,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": ""
+      "notes": "Depends on US-001 (priority field) and US-002 (priority display)"
     }
   ]
 }

@@ -8,7 +8,11 @@ You are an autonomous coding agent working on a software project.
 2. Read the progress log at `progress.txt` (check Codebase Patterns section first)
 3. Check the `plugins` section in prd.json and use those plugins if available (see Plugin Usage below)
 4. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
-5. Pick the **highest priority** user story where `passes: false`
+5. Pick the next eligible story using these rules:
+   - Must have `passes: false`
+   - If story has `dependsOn` array, ALL listed story IDs must have `passes: true`
+   - Among eligible stories, pick the one with **highest priority** (lowest number)
+   - If no stories are eligible (all blocked by dependencies), report this and stop
 6. Implement that single user story
 7. Run quality checks (e.g., typecheck, lint, test - use whatever your project requires)
 8. Update CLAUDE.md or AGENTS.md files if you discover reusable patterns (see below)

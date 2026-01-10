@@ -62,11 +62,35 @@ Each story must be completable in ONE Claude context window. This means:
     "Typecheck/lint passes",
     "Tests pass (if applicable)"
   ],
+  "dependsOn": ["US-000"],
   "priority": 1,
   "passes": false,
   "notes": ""
 }
 ```
+
+### Story Dependencies
+
+Use the optional `dependsOn` field to specify stories that must complete first:
+
+```json
+{
+  "id": "US-003",
+  "title": "Add priority filter UI",
+  "dependsOn": ["US-001", "US-002"],
+  ...
+}
+```
+
+- `dependsOn` is an array of story IDs
+- A story won't be picked until ALL dependencies have `passes: true`
+- Use dependencies when a story requires code/schema from another story
+- Omit `dependsOn` for stories with no dependencies
+
+**When to use dependencies:**
+- UI story depends on database schema story
+- API endpoint depends on data model story
+- Feature depends on shared utility being built first
 
 ### Priority Order
 
@@ -75,6 +99,8 @@ Stories should be ordered by dependency:
 2. API/backend that uses the schema
 3. UI that uses the API
 4. Polish/enhancement features last
+
+**Note:** Priority determines order among *eligible* stories. A high-priority story blocked by dependencies will wait for its dependencies to complete first.
 
 ## Step 4: Generate the PRD
 

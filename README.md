@@ -66,10 +66,36 @@ Create a `prd.json` file in your project root. See `prd.json.example` for the fo
       "priority": 1,
       "passes": false,
       "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Second task (depends on first)",
+      "description": "What to implement",
+      "dependsOn": ["US-001"],
+      "acceptanceCriteria": ["..."],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
     }
   ]
 }
 ```
+
+### Story Dependencies
+
+Use the optional `dependsOn` field to ensure stories execute in the correct order:
+
+```json
+{
+  "id": "US-003",
+  "dependsOn": ["US-001", "US-002"],
+  ...
+}
+```
+
+- Stories with unmet dependencies are skipped until their dependencies pass
+- Dependencies are specified as an array of story IDs
+- Use dependencies when a story requires code/schema from another story
 
 ### 2. Run Ralph
 
@@ -85,7 +111,7 @@ Create a `prd.json` file in your project root. See `prd.json.example` for the fo
 
 Ralph will:
 1. Create a feature branch (from PRD `branchName`)
-2. Pick the highest priority story where `passes: false`
+2. Pick the next eligible story (highest priority where `passes: false` and all `dependsOn` stories have passed)
 3. Implement that single story
 4. Run quality checks (typecheck, tests)
 5. Commit if checks pass
