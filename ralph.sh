@@ -124,6 +124,138 @@ show_status() {
   echo ""
 }
 
+# Dry-run command function
+show_dry_run() {
+  local project_dir="$1"
+  local prd_file="$project_dir/prd.json"
+
+  if [ ! -f "$prd_file" ]; then
+    echo "Error: No prd.json found in $project_dir"
+    exit 1
+  fi
+
+  if ! jq empty "$prd_file" 2>/dev/null; then
+    echo "Error: $prd_file is not valid JSON"
+    exit 1
+  fi
+
+  # Get project info
+  local project_name=$(jq -r '.project // "Unknown"' "$prd_file")
+  local mode=$(jq -r '.mode // "feature"' "$prd_file")
+  local base_branch=$(jq -r '.baseBranch // "main"' "$prd_file")
+  local branch_name=$(jq -r '.branchName // "N/A"' "$prd_file")
+  local description=$(jq -r '.description // "No description"' "$prd_file")
+
+  # Count stories by status
+  local total=$(jq '.userStories | length' "$prd_file")
+  local completed=$(jq '[.userStories[] | select(.passes == true)] | length' "$prd_file")
+  local incomplete=$(jq '[.userStories[] | select(.passes == false)] | length' "$prd_file")
+
+  # Count eligible (no unmet dependencies) vs blocked stories
+  local eligible=$(jq '
+    .userStories as $all |
+    [.userStories[] | select(
+      .passes == false and
+      (
+        (.dependsOn == null) or
+        (.dependsOn | length == 0) or
+        ((.dependsOn // []) | all(. as $dep | $all | map(select(.id == $dep and .passes == true)) | length > 0))
+      )
+    )] | length
+  ' "$prd_file")
+  local blocked=$((incomplete - eligible))
+
+  echo ""
+  echo "╔═══════════════════════════════════════════════════════╗"
+  echo "║                  Ralph Dry Run                        ║"
+  echo "╚═══════════════════════════════════════════════════════╝"
+  echo ""
+  echo "  Project:     $project_name"
+  echo "  Description: $description"
+  echo "  Mode:        $mode"
+  if [ "$mode" = "backlog" ]; then
+    echo "  Base branch: $base_branch"
+  else
+    echo "  Branch:      $branch_name"
+  fi
+  echo "  Location:    $project_dir"
+  echo ""
+  echo "  Stories:     $total total"
+  echo "               $completed completed"
+  echo "               $eligible eligible (ready to implement)"
+  if [ "$blocked" -gt 0 ]; then
+    echo "               $blocked blocked by dependencies"
+  fi
+  echo ""
+  echo "  Story List:"
+  echo "  ────────────────────────────────────────────────────"
+
+  jq -r '
+    .userStories as $all |
+    .userStories[] |
+    . as $story |
+    (
+      if .passes == true then "✓ PASS"
+      elif (.dependsOn == null) or (.dependsOn | length == 0) then "○ ELIGIBLE"
+      elif ((.dependsOn // []) | all(. as $dep | $all | map(select(.id == $dep and .passes == true)) | length > 0)) then "○ ELIGIBLE"
+      else "⊘ BLOCKED"
+      end
+    ) as $status |
+    "  \($status | .[0:10])  \(.id): \(.title)"
+  ' "$prd_file"
+
+  echo ""
+  echo "  Legend: ✓ PASS = completed  ○ ELIGIBLE = ready  ⊘ BLOCKED = waiting"
+  echo ""
+
+  # Show what would happen next
+  if [ "$eligible" -gt 0 ]; then
+    echo "  Next Action:"
+    echo "  ────────────────────────────────────────────────────"
+    local next_story=$(jq -r '
+      .userStories as $all |
+      [.userStories[] | select(
+        .passes == false and
+        (
+          (.dependsOn == null) or
+          (.dependsOn | length == 0) or
+          ((.dependsOn // []) | all(. as $dep | $all | map(select(.id == $dep and .passes == true)) | length > 0))
+        )
+      )] | sort_by(.priority) | .[0] | "\(.id): \(.title)"
+    ' "$prd_file")
+    echo "  Would implement: $next_story"
+    if [ "$mode" = "backlog" ]; then
+      local next_issue=$(jq -r '
+        .userStories as $all |
+        [.userStories[] | select(
+          .passes == false and
+          (
+            (.dependsOn == null) or
+            (.dependsOn | length == 0) or
+            ((.dependsOn // []) | all(. as $dep | $all | map(select(.id == $dep and .passes == true)) | length > 0))
+          )
+        )] | sort_by(.priority) | .[0] | .githubIssue // empty
+      ' "$prd_file")
+      if [ -n "$next_issue" ]; then
+        echo "  Would create branch: ralph/issue-$next_issue"
+      fi
+    fi
+    echo ""
+  else
+    echo "  Next Action:"
+    echo "  ────────────────────────────────────────────────────"
+    if [ "$completed" -eq "$total" ]; then
+      echo "  All stories complete! Would create final PR."
+    else
+      echo "  No eligible stories. All remaining stories are blocked."
+    fi
+    echo ""
+  fi
+
+  echo "  No changes were made. Run without --dry-run to execute."
+  echo ""
+}
+
 # Help command function
 show_help() {
   cat << 'EOF'
@@ -136,6 +268,7 @@ show_help() {
 USAGE
   ./ralph.sh <project> [iterations]    Run Ralph on a project
   ./ralph.sh status <project>          Check PRD progress
+  ./ralph.sh --dry-run <project>       Preview what Ralph would do
   ./ralph.sh help                      Show this help message
   ./ralph.sh --version                 Show version information
 
@@ -147,6 +280,7 @@ EXAMPLES
   ./ralph.sh ~/Projects/my-app         Run with 10 iterations
   ./ralph.sh ~/Projects/my-app 20      Run with 20 iterations
   ./ralph.sh status ~/Projects/my-app  Check progress
+  ./ralph.sh --dry-run ~/Projects/app  Preview without executing
 
 SKILLS (run with Claude Code in your project directory)
   claude /prd "feature description"    Create PRD interactively
@@ -182,6 +316,17 @@ if [ "$1" = "status" ]; then
     STATUS_DIR="$(pwd)"
   fi
   show_status "$STATUS_DIR"
+  exit 0
+fi
+
+# Handle dry-run command
+if [ "$1" = "--dry-run" ]; then
+  if [ -n "$2" ] && [ -d "$2" ]; then
+    DRYRUN_DIR="$(cd "$2" && pwd)"
+  else
+    DRYRUN_DIR="$(pwd)"
+  fi
+  show_dry_run "$DRYRUN_DIR"
   exit 0
 fi
 
