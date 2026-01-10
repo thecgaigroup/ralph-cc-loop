@@ -1,12 +1,12 @@
 ---
-name: plan
-description: Generate a prd.json from GitHub issues by scanning the codebase to understand what needs to change. Use when asked to "plan work", "create prd", "plan from issues", "build stories", or "import issues for ralph".
+name: review-issues
+description: Review GitHub issues and generate a prd.json by scanning the codebase to understand what needs to change. Use when asked to "review issues", "create prd from issues", "build stories from github", or "import issues for ralph".
 arguments: "[--repo owner/repo] [--label label] [--milestone milestone] [--issue 13,14,15] [--mode feature|backlog]"
 ---
 
-# Plan
+# Review Issues
 
-Generate `prd.json` files for Ralph by pulling GitHub issues and understanding the codebase.
+Review GitHub issues and generate `prd.json` files for Ralph by understanding the codebase.
 
 ## Your Task
 

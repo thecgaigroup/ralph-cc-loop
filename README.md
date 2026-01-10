@@ -176,8 +176,8 @@ Link stories to GitHub issues for automatic PR creation with `Closes #X`:
 
 Generate PRDs from GitHub issues using the skill:
 ```bash
-claude /plan --repo owner/repo --issue 13,14,15
-claude /plan --label bug --mode backlog
+claude /review-issues --repo owner/repo --issue 13,14,15
+claude /review-issues --label bug --mode backlog
 ```
 
 ### 2. Run Ralph
@@ -288,7 +288,7 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 |------|----------|---------|
 | `ralph.sh` | Ralph install | The bash loop that spawns Claude Code instances |
 | `prompt.md` | Ralph install | Instructions given to each Claude Code instance |
-| `skills/` | Ralph install | Skills like `/plan` and `/review-prs` |
+| `skills/` | Ralph install | Skills like `/review-issues` and `/review-prs` |
 | `prd.json` | Target project | User stories with `passes` status |
 | `progress.txt` | Target project | Append-only learnings (created by Ralph) |
 | `ralph-output.log` | Target project | Full Claude output (created by Ralph) |
