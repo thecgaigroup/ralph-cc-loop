@@ -19,15 +19,15 @@ Keep ralph.sh and prompt.md in a dedicated folder. Only create `prd.json` in eac
 
 ```bash
 # Clone or keep Ralph somewhere permanent
-git clone https://github.com/youruser/ralph-claude-code ~/tools/ralph-claude-code
+git clone https://github.com/thecgaigroup/ralph-cc-loop ~/tools/ralph-cc-loop
 
 # Optional: add alias to your shell config
-alias ralph="~/tools/ralph-claude-code/ralph.sh"
+alias ralph="~/tools/ralph-cc-loop/ralph.sh"
 ```
 
 Then run against any project:
 ```bash
-~/tools/ralph-claude-code/ralph.sh ~/Projects/my-app
+~/tools/ralph-cc-loop/ralph.sh ~/Projects/my-app
 # or with alias:
 ralph ~/Projects/my-app
 ```
