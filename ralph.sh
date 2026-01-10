@@ -1,18 +1,126 @@
 #!/bin/bash
 # Ralph - Long-running AI agent loop for Claude Code CLI
 # Usage: ./ralph.sh [project_dir] [max_iterations]
+#        ./ralph.sh status [project_dir]
 #
 # Examples:
 #   ./ralph.sh                     # Run in current directory, 10 iterations
 #   ./ralph.sh 20                  # Run in current directory, 20 iterations
 #   ./ralph.sh ~/Projects/my-app   # Run against my-app, 10 iterations
 #   ./ralph.sh ~/Projects/my-app 20 # Run against my-app, 20 iterations
+#   ./ralph.sh status              # Show status for current directory
+#   ./ralph.sh status ~/Projects/my-app  # Show status for my-app
 
 set -e
 
 # Check dependencies
 command -v jq >/dev/null 2>&1 || { echo "Error: jq is required but not installed"; exit 1; }
 command -v claude >/dev/null 2>&1 || { echo "Error: claude CLI is required but not installed"; exit 1; }
+
+# Status command function
+show_status() {
+  local project_dir="$1"
+  local prd_file="$project_dir/prd.json"
+  local progress_file="$project_dir/progress.txt"
+  local output_log="$project_dir/ralph-output.log"
+
+  if [ ! -f "$prd_file" ]; then
+    echo "Error: No prd.json found in $project_dir"
+    exit 1
+  fi
+
+  if ! jq empty "$prd_file" 2>/dev/null; then
+    echo "Error: $prd_file is not valid JSON"
+    exit 1
+  fi
+
+  # Get project info
+  local project_name=$(jq -r '.project // "Unknown"' "$prd_file")
+  local branch_name=$(jq -r '.branchName // "Unknown"' "$prd_file")
+
+  # Count stories by status
+  local total=$(jq '.userStories | length' "$prd_file")
+  local completed=$(jq '[.userStories[] | select(.passes == true)] | length' "$prd_file")
+  local incomplete=$(jq '[.userStories[] | select(.passes == false)] | length' "$prd_file")
+
+  # Count eligible (no unmet dependencies) vs blocked stories
+  # A story is blocked if it has dependsOn and any dependency has passes=false
+  local eligible=$(jq '
+    .userStories as $all |
+    [.userStories[] | select(
+      .passes == false and
+      (
+        (.dependsOn == null) or
+        (.dependsOn | length == 0) or
+        ((.dependsOn // []) | all(. as $dep | $all | map(select(.id == $dep and .passes == true)) | length > 0))
+      )
+    )] | length
+  ' "$prd_file")
+  local blocked=$((incomplete - eligible))
+
+  # Get last run time from output log
+  local last_run="Never"
+  if [ -f "$output_log" ]; then
+    # Look for the most recent iteration timestamp
+    last_run=$(grep -o "Iteration [0-9]* of [0-9]* - .*" "$output_log" 2>/dev/null | tail -1 | sed 's/.*- //' || echo "Unknown")
+    if [ -z "$last_run" ]; then
+      last_run="Unknown"
+    fi
+  fi
+
+  echo ""
+  echo "╔═══════════════════════════════════════════════════════╗"
+  echo "║                    Ralph Status                       ║"
+  echo "╚═══════════════════════════════════════════════════════╝"
+  echo ""
+  echo "  Project:  $project_name"
+  echo "  Branch:   $branch_name"
+  echo "  Location: $project_dir"
+  echo ""
+  echo "  Stories:  $completed/$total complete"
+  if [ "$eligible" -gt 0 ]; then
+    echo "            $eligible ready to implement"
+  fi
+  if [ "$blocked" -gt 0 ]; then
+    echo "            $blocked blocked by dependencies"
+  fi
+  echo ""
+  echo "  Last run: $last_run"
+  echo ""
+
+  # Show story details
+  echo "  Stories:"
+  echo "  ────────────────────────────────────────────────────"
+
+  jq -r '
+    .userStories as $all |
+    .userStories[] |
+    . as $story |
+    (
+      if .passes == true then "✓"
+      elif (.dependsOn == null) or (.dependsOn | length == 0) then "○"
+      elif ((.dependsOn // []) | all(. as $dep | $all | map(select(.id == $dep and .passes == true)) | length > 0)) then "○"
+      else "⊘"
+      end
+    ) as $status |
+    "  \($status) \(.id): \(.title)"
+  ' "$prd_file"
+
+  echo ""
+  echo "  Legend: ✓ complete  ○ ready  ⊘ blocked"
+  echo ""
+}
+
+# Handle status command
+if [ "$1" = "status" ]; then
+  if [ -n "$2" ] && [ -d "$2" ]; then
+    STATUS_DIR="$(cd "$2" && pwd)"
+  else
+    STATUS_DIR="$(pwd)"
+  fi
+  show_status "$STATUS_DIR"
+  exit 0
+fi
 
 # Parse arguments: detect if first arg is a directory or a number
 if [ -n "$1" ]; then

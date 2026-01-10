@@ -160,8 +160,42 @@ While Ralph is running in the foreground:
 
 ### Check PRD Status
 
+Use the built-in status command for a quick overview:
+
 ```bash
-# See which stories are complete
+./ralph.sh status                    # Status for current directory
+./ralph.sh status ~/Projects/my-app  # Status for specific project
+```
+
+Example output:
+```
+╔═══════════════════════════════════════════════════════╗
+║                    Ralph Status                       ║
+╚═══════════════════════════════════════════════════════╝
+
+  Project:  MyApp
+  Branch:   ralph/task-priority
+  Location: /Users/you/Projects/my-app
+
+  Stories:  1/4 complete
+            2 ready to implement
+            1 blocked by dependencies
+
+  Last run: Sat Jan 10 14:32:01 PST 2026
+
+  Stories:
+  ────────────────────────────────────────────────────
+  ✓ US-001: Add priority field to database
+  ○ US-002: Display priority indicator on task cards
+  ○ US-003: Add priority selector to task edit
+  ⊘ US-004: Filter tasks by priority
+
+  Legend: ✓ complete  ○ ready  ⊘ blocked
+```
+
+Or use jq for raw data:
+
+```bash
 cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 ```
 
