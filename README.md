@@ -160,19 +160,19 @@ To use the skills as slash commands, install the plugin:
 claude plugin validate ~/tools/ralph-cc-loop
 
 # Install globally (copy to Claude plugins cache)
-mkdir -p ~/.claude/plugins/cache/local/ralph-claude-code/1.1.0
-cp -R ~/tools/ralph-cc-loop/.claude-plugin/* ~/.claude/plugins/cache/local/ralph-claude-code/1.1.0/
+mkdir -p ~/.claude/plugins/cache/local/ralph-claude-code/2.0.0
+cp -R ~/tools/ralph-cc-loop/.claude-plugin/* ~/.claude/plugins/cache/local/ralph-claude-code/2.0.0/
 
 # Add to installed plugins
 # (Or restart Claude Code and use --plugin-dir flag once)
 claude --plugin-dir ~/tools/ralph-cc-loop
 ```
 
-After installation, restart Claude Code to use:
-- `/prd` - Create PRD interactively
-- `/review-issues` - Generate PRD from GitHub issues
-- `/review-prs` - Review and merge PRs
-- `/qa-audit` - Production readiness audit
+After installation, restart Claude Code to use all 12 skills:
+- Core: `/prd`, `/review-issues`, `/review-prs`
+- Quality: `/qa-audit`, `/test-coverage`, `/a11y-audit`, `/perf-audit`
+- Maintenance: `/deps-update`, `/refactor`, `/migrate`
+- Docs: `/docs-gen`, `/onboard`
 
 Then run against any project:
 ```bash
@@ -396,7 +396,7 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 |------|----------|---------|
 | `ralph.sh` | Ralph install | The bash loop that spawns Claude Code instances |
 | `prompt.md` | Ralph install | Instructions given to each Claude Code instance |
-| `.claude-plugin/` | Ralph install | Plugin manifest and skills (`/prd`, `/review-issues`, `/review-prs`, `/qa-audit`) |
+| `.claude-plugin/` | Ralph install | Plugin manifest and skills (12 skills - see below) |
 | `prd.json` | Target project | User stories with `passes` status |
 | `progress.txt` | Target project | Append-only learnings (created by Ralph) |
 | `ralph-output.log` | Target project | Full Claude output (created by Ralph) |
@@ -404,9 +404,69 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 
 ## Skills
 
-Ralph includes skills for common workflows:
+Ralph includes 12 skills for common workflows. Run any skill with `claude /skill-name`.
 
-### `/prd` - Create PRD Interactively
+### Core Workflow Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `/prd` | Create PRD interactively by describing a feature |
+| `/review-issues` | Generate PRD from GitHub issues |
+| `/review-prs` | Review, approve, and merge pull requests |
+
+```bash
+claude /prd "Add task priority system"
+claude /review-issues --issue 42 --mode backlog
+claude /review-prs --auto-merge
+```
+
+### Quality & Audit Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `/qa-audit` | Production readiness audit with full remediation |
+| `/test-coverage` | Find untested code and generate tests |
+| `/a11y-audit` | WCAG accessibility audit and remediation |
+| `/perf-audit` | Performance profiling and optimization |
+
+```bash
+claude /qa-audit ~/Projects/my-app --env staging
+claude /test-coverage ~/Projects/my-app
+claude /a11y-audit ~/Projects/my-app --level AA
+claude /perf-audit ~/Projects/my-app --focus frontend
+```
+
+### Maintenance Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `/deps-update` | Update dependencies, fix vulnerabilities, create PRs |
+| `/refactor` | Detect code smells, reduce complexity, apply patterns |
+| `/migrate` | Framework/version migration (React, Node, ESM, etc.) |
+
+```bash
+claude /deps-update ~/Projects/my-app
+claude /refactor ~/Projects/my-app --scope src/utils/
+claude /migrate ~/Projects/my-app react-18-to-19
+```
+
+### Documentation Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `/docs-gen` | Generate/update README, API docs, architecture docs |
+| `/onboard` | Create new developer onboarding documentation |
+
+```bash
+claude /docs-gen ~/Projects/my-app
+claude /onboard ~/Projects/my-app
+```
+
+---
+
+### Skill Details
+
+#### `/prd` - Create PRD Interactively
 
 Create a PRD by describing your feature - Claude will break it down into right-sized stories:
 
@@ -414,37 +474,25 @@ Create a PRD by describing your feature - Claude will break it down into right-s
 claude /prd "Add task priority system with high/medium/low levels"
 ```
 
-### `/review-issues` - Generate PRD from GitHub Issues
+#### `/review-issues` - Generate PRD from GitHub Issues
 
 Pull GitHub issues and scan the codebase to generate a PRD with proper file references:
 
 ```bash
-# Single issue
-claude /review-issues --issue 42
-
-# Multiple issues
-claude /review-issues --issue 13,14,15
-
-# By label
-claude /review-issues --label bug --mode backlog
-
-# By milestone
-claude /review-issues --milestone v2.0
+claude /review-issues --issue 42           # Single issue
+claude /review-issues --issue 13,14,15     # Multiple issues
+claude /review-issues --label bug          # By label
+claude /review-issues --milestone v2.0     # By milestone
 ```
 
-### `/review-prs` - Review and Merge Pull Requests
+#### `/review-prs` - Review and Merge Pull Requests
 
 Review, approve, and merge PRs with intelligent handling of Dependabot updates:
 
 ```bash
-# Review all PRs, auto-merge safe ones
-claude /review-prs --auto-merge
-
-# Just Dependabot PRs
-claude /review-prs --dependabot-only --auto-merge
-
-# Review a specific PR
-claude /review-prs --pr 14
+claude /review-prs --auto-merge            # All PRs, auto-merge safe ones
+claude /review-prs --dependabot-only       # Just Dependabot PRs
+claude /review-prs --pr 14                 # Specific PR
 ```
 
 **Dependabot auto-merge rules:**
@@ -452,37 +500,147 @@ claude /review-prs --pr 14
 - Minor updates (`1.0.0 → 1.1.0`): Auto-merge if CI passes
 - Major updates (`1.0.0 → 2.0.0`): Flagged for human review
 
-### `/qa-audit` - Production Readiness Audit
+#### `/qa-audit` - Production Readiness Audit
 
-Run a comprehensive QA audit on any project. Scans the codebase, asks which environment to test, generates a QA PRD, then runs Ralph:
+Run a comprehensive QA audit with full remediation:
 
 ```bash
-# Audit a project (will ask which environment)
-claude /qa-audit ~/Projects/my-app
-
-# Specify environment directly
 claude /qa-audit ~/Projects/my-app --env local
-claude /qa-audit ~/Projects/my-app --env dev
-claude /qa-audit ~/Projects/my-app --env prod
+```
+
+**What it audits & remediates:**
+- **Security**: Secrets, dependencies, auth, input validation
+- **Testing**: Unit tests, E2E, critical paths, API tests
+- **Performance**: Load times, bottlenecks
+- **Documentation**: README, API docs, deployment
+- **CI/CD**: Pipeline validation
+
+#### `/deps-update` - Dependency Updates
+
+Audit and update outdated dependencies:
+
+```bash
+claude /deps-update ~/Projects/my-app
+```
+
+**What it does:**
+- Security vulnerability fixes (priority 1)
+- Major version updates (with breaking change analysis)
+- Minor/patch batched updates
+- Dev dependency updates
+- Unused dependency cleanup
+
+#### `/test-coverage` - Test Coverage Analysis
+
+Find untested code and generate tests:
+
+```bash
+claude /test-coverage ~/Projects/my-app
+```
+
+**What it does:**
+- Run coverage analysis
+- Identify critical paths without tests
+- Generate tests for zero-coverage files
+- Improve low-coverage files to >80%
+- Add integration and API tests
+
+#### `/a11y-audit` - Accessibility Audit
+
+WCAG compliance audit and remediation:
+
+```bash
+claude /a11y-audit ~/Projects/my-app --level AA
 ```
 
 **What it audits:**
-- **Environment**: Connectivity, configuration, access
-- **Security**: Secrets hygiene, dependencies, auth, input validation, API security
-- **Testing**: Unit tests, E2E smoke tests, critical path tests, API tests
-- **Performance**: Load times, response times, bottlenecks
-- **Documentation**: README accuracy, API docs, deployment instructions
-- **CI/CD**: Pipeline validation, build artifacts
+- Semantic HTML structure
+- Images and alt text
+- Form accessibility
+- Keyboard navigation
+- Color contrast
+- ARIA attributes
 
-**Browser testing priority:**
-1. Playwright (headless) - primary
-2. Claude Chrome MCP - fallback for debugging
-3. Manual documentation - last resort
+#### `/perf-audit` - Performance Audit
 
-**Output files:**
-- `prd.json` - QA stories for Ralph to execute
-- `QA_PROGRESS.md` - Findings with severity ratings
-- `ENV_TEST_MATRIX.md` - Environment configuration
+Profile and optimize application performance:
+
+```bash
+claude /perf-audit ~/Projects/my-app --focus all
+```
+
+**What it optimizes:**
+- Bundle size and code splitting
+- Image optimization
+- Core Web Vitals (LCP, FID, CLS)
+- API response times
+- Database queries
+- Caching strategy
+
+#### `/refactor` - Code Refactoring
+
+Detect code smells and reduce technical debt:
+
+```bash
+claude /refactor ~/Projects/my-app
+```
+
+**What it fixes:**
+- High complexity functions
+- Duplicate code
+- God classes/files
+- Deep nesting
+- Dead code
+- Type safety issues
+
+#### `/migrate` - Framework Migration
+
+Assist with version and framework migrations:
+
+```bash
+claude /migrate ~/Projects/my-app react-18-to-19
+claude /migrate ~/Projects/my-app cjs-to-esm
+claude /migrate ~/Projects/my-app node-18-to-20
+```
+
+**Supported migrations:**
+- React version upgrades
+- CommonJS to ES Modules
+- Node.js version upgrades
+- TypeScript version upgrades
+- ORM migrations (Sequelize → Prisma)
+
+#### `/docs-gen` - Documentation Generator
+
+Generate and update project documentation:
+
+```bash
+claude /docs-gen ~/Projects/my-app
+```
+
+**What it creates:**
+- README with badges, installation, usage
+- API documentation (OpenAPI/Swagger)
+- Architecture documentation with diagrams
+- Development setup guide
+- Deployment documentation
+- CHANGELOG
+
+#### `/onboard` - Onboarding Documentation
+
+Generate new developer onboarding docs:
+
+```bash
+claude /onboard ~/Projects/my-app
+```
+
+**What it creates:**
+- Quick start guide (5-minute setup)
+- Architecture overview with diagrams
+- Directory structure guide
+- Development workflow
+- Code patterns guide
+- Troubleshooting guide
 
 ## File Attribution
 
