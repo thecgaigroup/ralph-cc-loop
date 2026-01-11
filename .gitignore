@@ -11,3 +11,7 @@ archive/
 *.swp
 *.swo
 *~
+
+# Local files
+.environment
+ralph-output.log
