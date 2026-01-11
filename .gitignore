@@ -15,3 +15,4 @@ archive/
 # Local files
 .environment
 ralph-output.log
+sync.sh
