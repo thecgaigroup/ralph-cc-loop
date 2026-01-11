@@ -66,6 +66,66 @@ This document compares the two Ralph systems available for iterative Claude Code
 
 **Legend:** ✅ = Yes / Built-in | ❌ = No | ⚠️ = Possible but not ideal
 
+## Differences from Amp Version
+
+This Claude Code version of Ralph has significant advantages over the original Amp-based Ralph:
+
+### PRD Decomposition
+
+**Big chunky requirements → Right-sized stories**
+
+You can send Ralph a large, rough PRD and it will use `/prd` mode to intelligently break it down into properly-sized stories that fit within a single context window. The original Amp version required you to manually break down tasks.
+
+```bash
+# Give Ralph a high-level feature description
+claude /prd "Add a complete user authentication system with OAuth,
+email verification, password reset, and role-based permissions"
+
+# Ralph breaks it into ~8-12 right-sized stories with dependencies
+```
+
+### 12 Automation Skills
+
+The Claude Code version includes 12 skills that the Amp version doesn't have:
+
+| Skill | What It Does | Amp Equivalent |
+|-------|--------------|----------------|
+| `/prd` | Breaks down features into right-sized stories | ❌ Manual |
+| `/review-issues` | Generates PRD from GitHub issues | ❌ Manual |
+| `/review-prs` | Reviews, approves, merges PRs | ❌ Manual |
+| `/qa-audit` | Full QA audit with remediation | ❌ None |
+| `/test-coverage` | Finds gaps, generates tests | ❌ None |
+| `/a11y-audit` | WCAG accessibility audit | ❌ None |
+| `/perf-audit` | Performance profiling | ❌ None |
+| `/deps-update` | Dependency updates + security fixes | ❌ Manual |
+| `/refactor` | Code smell detection + fixes | ❌ None |
+| `/migrate` | Framework/version migrations | ❌ None |
+| `/docs-gen` | Auto-generate documentation | ❌ None |
+| `/onboard` | Create onboarding docs | ❌ None |
+
+### End-to-End Automation
+
+With skills, you can automate entire workflows:
+
+```bash
+# Morning routine - takes ~5 minutes of human time
+claude /review-issues --label bug           # Generate PRD from bugs
+./ralph.sh ~/Projects/my-app 20             # Ralph fixes them
+claude /review-prs --auto-merge             # Merge safe PRs
+claude /deps-update ~/Projects/my-app       # Update dependencies
+```
+
+### Technical Differences
+
+| Feature | Amp Version | Claude Code Version |
+|---------|-------------|---------------------|
+| CLI command | `amp --dangerously-allow-all` | `claude --print --dangerously-skip-permissions` |
+| Thread references | Uses `$AMP_CURRENT_THREAD_ID` | Not available |
+| Browser tool | `dev-browser` skill | MCP browser tools |
+| Config files | `AGENTS.md` | `CLAUDE.md` |
+| Skills/Plugins | Limited | 12 built-in skills |
+| PRD decomposition | Manual | Automatic via `/prd` |
+
 ## When to Use Each
 
 ### Use ralph-cc-loop when:
