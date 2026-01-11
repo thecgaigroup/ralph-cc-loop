@@ -1,7 +1,47 @@
 ---
 name: review-issues
 description: Review GitHub issues and generate a prd.json by scanning the codebase to understand what needs to change. Use when asked to "review issues", "create prd from issues", "build stories from github", or "import issues for ralph".
-arguments: "[--repo owner/repo] [--label label] [--milestone milestone] [--issue 13,14,15] [--mode feature|backlog]"
+arguments: "[--repo owner/repo] [--label label] [--milestone milestone] [--issue 13,14,15] [--mode feature|backlog] | --help"
+---
+
+# Help Check
+
+If the user passed `--help` as an argument, output the following and stop:
+
+```
+/review-issues - Generate PRD from GitHub issues
+
+Usage:
+  claude /review-issues [options]
+  claude /review-issues --help
+
+Options:
+  --repo <owner/repo>     GitHub repository (auto-detected if not specified)
+  --issue <numbers>       Specific issues, comma-separated (e.g., 13,14,15)
+  --label <labels>        Filter by label(s), comma-separated
+  --milestone <name>      Filter by milestone
+  --mode <mode>           PRD mode: 'feature' (default) or 'backlog'
+  --help                  Show this help message
+
+Examples:
+  claude /review-issues --issue 42
+  claude /review-issues --issue 13,14,15 --mode backlog
+  claude /review-issues --label bug,feature
+  claude /review-issues --milestone v2.0
+  claude /review-issues --repo owner/repo --label bug
+
+What it does:
+  - Fetches issues from GitHub using gh CLI
+  - Scans codebase to find relevant files
+  - Breaks issues into right-sized stories
+  - Generates prd.json with proper dependencies
+  - Links stories to GitHub issues for automatic PR closing
+
+Output:
+  - prd.json in your project directory
+  - PR will include "Closes #X" for each linked issue
+```
+
 ---
 
 # Review Issues

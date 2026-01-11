@@ -1,7 +1,58 @@
 ---
 name: qa-audit
 description: Run a comprehensive QA audit on any project. Scans the codebase, detects project type, asks which environment to target, generates a QA PRD, then runs Ralph to execute the audit. Use when asked to "qa audit", "production readiness check", "security audit", or "test this project".
-arguments: "<project_path> [--env local|dev|staging|prod]"
+arguments: "<project_path> [--env local|dev|staging|prod] | --help"
+---
+
+# Help Check
+
+If the user passed `--help` as an argument, output the following and stop:
+
+```
+/qa-audit - Production readiness audit with full remediation
+
+Usage:
+  claude /qa-audit <project_path> [options]
+  claude /qa-audit --help
+
+Arguments:
+  project_path           Path to the project to audit (required)
+
+Options:
+  --env <environment>    Target environment: local, dev, staging, prod
+  --help                 Show this help message
+
+Examples:
+  claude /qa-audit ~/Projects/my-app
+  claude /qa-audit ~/Projects/my-app --env staging
+  claude /qa-audit ~/Projects/my-app --env prod
+
+What it audits & remediates:
+  - Security: Secrets hygiene, vulnerable dependencies, auth, input validation
+  - Testing: Unit tests, E2E smoke tests, API tests, critical paths
+  - Performance: Load times, response times, bottlenecks
+  - Documentation: README accuracy, API docs, deployment instructions
+  - CI/CD: Pipeline validation, build artifacts
+
+Remediation tiers:
+  - Auto-fix: Safe changes (gitignore, env.example, lint fixes)
+  - Fix+confirm: Moderate changes (dependency updates)
+  - Follow-up: Creates new stories for complex remediation
+  - Manual: Documents with clear instructions
+
+Output files:
+  - prd.json: QA stories for Ralph to execute
+  - QA_PROGRESS.md: Findings with severity ratings
+  - ENV_TEST_MATRIX.md: Environment configuration
+
+Workflow:
+  1. Scans codebase to detect tech stack
+  2. Asks which environment to test (if not specified)
+  3. Collects any needed credentials
+  4. Generates QA PRD with remediation stories
+  5. Runs Ralph to execute the audit
+```
+
 ---
 
 # QA Audit - Production Readiness Check

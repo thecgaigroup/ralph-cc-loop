@@ -6,6 +6,62 @@ arguments:
   - name: project_path
     description: Path to the project to analyze
     required: true
+  - name: --help
+    description: Show help message
+    required: false
+---
+
+# Help Check
+
+If the user passed `--help` as an argument, output the following and stop:
+
+```
+/test-coverage - Analyze and improve test coverage
+
+Usage:
+  claude /test-coverage <project_path>
+  claude /test-coverage --help
+
+Arguments:
+  project_path    Path to the project to analyze (required)
+
+Options:
+  --help          Show this help message
+
+Examples:
+  claude /test-coverage ~/Projects/my-app
+  claude /test-coverage .
+
+What it does:
+  - Detects test framework (Jest, Vitest, pytest, etc.)
+  - Runs coverage analysis
+  - Identifies untested code paths
+  - Generates PRD with test stories
+
+Coverage targets:
+  - Overall: > 80% line coverage, > 70% branch coverage
+  - Critical paths (auth, payments): > 90% coverage
+
+Story priority:
+  1. Critical path tests (auth, payments, data mutations)
+  2. Zero-coverage files
+  3. Low-coverage files (< 80%)
+  4. Integration tests
+  5. API endpoint tests
+  6. Test infrastructure improvements
+  7. Final verification
+
+Output:
+  - prd.json: Test stories for Ralph to execute
+  - tests/README.md: Test documentation
+
+What it generates:
+  - Unit tests for untested functions
+  - Integration tests for component interactions
+  - API tests for endpoints
+  - Test utilities and factories
+```
+
 ---
 
 You are a test engineering expert. Your task is to analyze a project's test coverage, identify untested code paths, and generate comprehensive tests.

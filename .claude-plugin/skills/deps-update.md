@@ -6,6 +6,57 @@ arguments:
   - name: project_path
     description: Path to the project to audit
     required: true
+  - name: --help
+    description: Show help message
+    required: false
+---
+
+# Help Check
+
+If the user passed `--help` as an argument, output the following and stop:
+
+```
+/deps-update - Audit and update outdated dependencies
+
+Usage:
+  claude /deps-update <project_path>
+  claude /deps-update --help
+
+Arguments:
+  project_path    Path to the project to audit (required)
+
+Options:
+  --help          Show this help message
+
+Examples:
+  claude /deps-update ~/Projects/my-app
+  claude /deps-update .
+
+What it does:
+  - Detects package managers (npm, yarn, pnpm, pip, gem, go, cargo)
+  - Runs security audits (npm audit, pip-audit, etc.)
+  - Identifies outdated dependencies
+  - Generates PRD with prioritized update stories
+
+Update priority:
+  1. Security vulnerabilities (critical/high)
+  2. Major version updates (with breaking change analysis)
+  3. Minor/patch updates (batched)
+  4. Dev dependencies
+  5. Cleanup (remove unused)
+  6. Final verification
+
+Output:
+  - prd.json: Update stories for Ralph to execute
+  - DEPS_CHANGELOG.md: Log of all changes made
+
+Remediation:
+  - Auto-fixes security vulnerabilities
+  - Reviews breaking changes before major updates
+  - Runs tests after each update batch
+  - Creates separate commits for easy rollback
+```
+
 ---
 
 You are a dependency management expert. Your task is to audit a project's dependencies, identify outdated packages, update them safely, and ensure everything still works.

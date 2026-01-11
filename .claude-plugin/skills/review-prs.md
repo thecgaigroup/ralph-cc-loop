@@ -1,7 +1,46 @@
 ---
 name: review-prs
 description: Review, approve, and merge GitHub pull requests. Handles Dependabot PRs with auto-merge rules and feature PRs with code review. Use when asked to "review PRs", "merge dependabot", "check pull requests", or "clean up PRs".
-arguments: "[--repo owner/repo] [--auto-merge] [--dependabot-only] [--pr number]"
+arguments: "[--repo owner/repo] [--auto-merge] [--dependabot-only] [--pr number] | --help"
+---
+
+# Help Check
+
+If the user passed `--help` as an argument, output the following and stop:
+
+```
+/review-prs - Review and merge pull requests
+
+Usage:
+  claude /review-prs [options]
+  claude /review-prs --help
+
+Options:
+  --repo <owner/repo>    GitHub repository (auto-detected if not specified)
+  --pr <number>          Review a specific PR
+  --auto-merge           Automatically merge PRs that pass review
+  --dependabot-only      Only process Dependabot/Renovate PRs
+  --help                 Show this help message
+
+Examples:
+  claude /review-prs --auto-merge
+  claude /review-prs --dependabot-only --auto-merge
+  claude /review-prs --pr 42
+  claude /review-prs --repo owner/repo --auto-merge
+
+What it does:
+  - Lists open PRs and categorizes by type
+  - Reviews code changes for issues
+  - Auto-merges Dependabot patch/minor updates if CI passes
+  - Flags major version bumps for human review
+  - Provides detailed review for feature PRs
+
+Dependabot auto-merge rules:
+  - Patch (1.0.0 → 1.0.1): Auto-merge if CI passes
+  - Minor (1.0.0 → 1.1.0): Auto-merge if CI passes
+  - Major (1.0.0 → 2.0.0): Flagged for human review
+```
+
 ---
 
 # PR Review Skill

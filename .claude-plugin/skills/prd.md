@@ -1,7 +1,39 @@
 ---
 name: prd
 description: Generate a prd.json file for Ralph by interactively breaking down a feature into right-sized user stories. Use when asked to "create a prd", "generate prd.json", "break down this feature", or "plan user stories for ralph".
-arguments: "[feature description]"
+arguments: "[feature description] | --help"
+---
+
+# Help Check
+
+If the user passed `--help` as an argument, output the following and stop:
+
+```
+/prd - Create PRD interactively
+
+Usage:
+  claude /prd [feature description]
+  claude /prd --help
+
+Arguments:
+  feature description    Description of the feature to break down (optional)
+  --help                Show this help message
+
+Examples:
+  claude /prd "Add user authentication with OAuth"
+  claude /prd "Build a task priority system"
+  claude /prd
+
+What it does:
+  - Guides you through creating a prd.json for Ralph
+  - Breaks down features into right-sized user stories
+  - Handles story dependencies and priorities
+  - Supports feature mode (one branch) or backlog mode (branch per story)
+
+Output:
+  - prd.json in your project directory
+```
+
 ---
 
 # PRD Generator for Ralph
