@@ -381,7 +381,7 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 
 ## Skills
 
-Ralph includes three skills for common workflows:
+Ralph includes skills for common workflows:
 
 ### `/prd` - Create PRD Interactively
 
@@ -429,6 +429,38 @@ claude /review-prs --pr 14
 - Minor updates (`1.0.0 → 1.1.0`): Auto-merge if CI passes
 - Major updates (`1.0.0 → 2.0.0`): Flagged for human review
 
+### `/qa-audit` - Production Readiness Audit
+
+Run a comprehensive QA audit on any project. Scans the codebase, asks which environment to test, generates a QA PRD, then runs Ralph:
+
+```bash
+# Audit a project (will ask which environment)
+claude /qa-audit ~/Projects/my-app
+
+# Specify environment directly
+claude /qa-audit ~/Projects/my-app --env local
+claude /qa-audit ~/Projects/my-app --env dev
+claude /qa-audit ~/Projects/my-app --env prod
+```
+
+**What it audits:**
+- **Environment**: Connectivity, configuration, access
+- **Security**: Secrets hygiene, dependencies, auth, input validation, API security
+- **Testing**: Unit tests, E2E smoke tests, critical path tests, API tests
+- **Performance**: Load times, response times, bottlenecks
+- **Documentation**: README accuracy, API docs, deployment instructions
+- **CI/CD**: Pipeline validation, build artifacts
+
+**Browser testing priority:**
+1. Playwright (headless) - primary
+2. Claude Chrome MCP - fallback for debugging
+3. Manual documentation - last resort
+
+**Output files:**
+- `prd.json` - QA stories for Ralph to execute
+- `QA_PROGRESS.md` - Findings with severity ratings
+- `ENV_TEST_MATRIX.md` - Environment configuration
+
 ## File Attribution
 
 All Ralph-generated files include clear attribution for tracking:
@@ -457,6 +489,36 @@ archive/
 | Thread references | Uses `$AMP_CURRENT_THREAD_ID` | Not available |
 | Browser tool | `dev-browser` skill | `mcp__puppeteer` or Browser tool |
 | Config files | `AGENTS.md` | `CLAUDE.md` or `AGENTS.md` |
+
+## Ralph vs Ralph Wiggum
+
+There are two "Ralph" systems for iterative Claude Code execution:
+
+| | ralph-cc-loop (this repo) | ralph-wiggum (plugin) |
+|---|:---:|:---:|
+| **Type** | Bash script | Claude Code plugin |
+| **State tracking** | `prd.json` stories | Stateless |
+| **Progress** | `passes: true/false` per story | Reads files each iteration |
+| **Git integration** | Branches, commits, PRs | Manual |
+| **Story dependencies** | ✅ Built-in | ❌ |
+| **Status command** | ✅ `./ralph.sh status` | ❌ |
+| **Best for** | Discrete, trackable tasks | Open-ended exploration |
+
+### When to Use Each
+
+**Use ralph-cc-loop when:**
+- You can define discrete tasks upfront
+- You want automatic git integration (branches, commits, PRs)
+- You need progress tracking and visibility
+- Tasks have dependencies on each other
+
+**Use ralph-wiggum when:**
+- You want Claude to self-direct the work
+- Tasks are exploratory or open-ended
+- You have a goal but unclear steps
+- You want "keep going until you figure it out"
+
+See [docs/ralph-comparison.md](docs/ralph-comparison.md) for a detailed feature comparison.
 
 ## Critical Concepts
 
