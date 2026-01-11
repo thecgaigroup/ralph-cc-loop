@@ -797,3 +797,4 @@ If a plugin is listed but not installed, Ralph skips it gracefully.
 ## License
 
 MIT
+
