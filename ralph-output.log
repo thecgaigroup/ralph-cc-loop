@@ -1,0 +1,57 @@
+# Ralph Output Log
+# Project: Ralph Self-Improvement
+# Location: /Users/marcwojcik/tools/ralph-cc-loop
+# Started: Sat Jan 10 15:32:29 EST 2026
+#
+# This file contains full Claude output from all Ralph iterations.
+# See: https://github.com/thecgaigroup/ralph-cc-loop
+---
+
+═══════════════════════════════════════════════════════
+  Iteration 1 of 10 - Sat Jan 10 15:32:29 EST 2026
+═══════════════════════════════════════════════════════
+All stories are complete. Since this is backlog mode and no eligible stories remain, I should output the BACKLOG_EMPTY signal.
+
+**Summary of completed work:**
+
+- **Story GH-1-1**: Add --version flag to ralph.sh
+  - Added `VERSION="1.0.0"` variable at top of ralph.sh
+  - Added handling for `--version` and `-v` flags (before dependency checks so it always works)
+  - Updated help text to include the new flag
+  - All acceptance criteria met and tested
+  - Created PR #2: https://github.com/thecgaigroup/ralph-cc-loop/pull/2
+
+<promise>BACKLOG_EMPTY</promise>
+
+═══════════════════════════════════════════════════════
+  Iteration 1 of 10 - Sat Jan 10 16:28:36 EST 2026
+═══════════════════════════════════════════════════════
+The story is marked as `passes: true`. All stories in this PRD have now passed.
+
+Since this is backlog mode and there are no more eligible stories remaining (all are complete), I should signal `BACKLOG_EMPTY`:
+
+<promise>BACKLOG_EMPTY</promise>
+
+═══════════════════════════════════════════════════════
+  Iteration 1 of 10 - Sat Jan 10 16:30:37 EST 2026
+═══════════════════════════════════════════════════════
+All stories have `passes: true`. In backlog mode with no remaining eligible stories, I should signal completion.
+
+**Summary:**
+
+I successfully implemented story **GH-4-1: Add --dry-run flag to ralph.sh**
+
+**Changes made:**
+- Added `show_dry_run()` function that displays PRD information without executing
+- Added `--dry-run` command handler after the status handler
+- Updated help text to include the new option
+- Created PR #5: https://github.com/thecgaigroup/ralph-cc-loop/pull/5
+
+**Acceptance criteria verified:**
+- ✅ `./ralph.sh --dry-run [project]` shows parsed PRD info
+- ✅ Displays: project name, mode, number of stories, eligible stories
+- ✅ Lists each story with id, title, and passes status
+- ✅ Does NOT start Claude Code or make any changes
+- ✅ Exit cleanly after printing (exit code 0)
+
+<promise>BACKLOG_EMPTY</promise>

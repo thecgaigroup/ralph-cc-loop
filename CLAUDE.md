@@ -104,7 +104,7 @@ The repo is determined in this order:
 |------|---------|
 | `ralph.sh` | Bash loop that spawns Claude Code instances with `--print --dangerously-skip-permissions` |
 | `prompt.md` | Instructions fed to each Claude Code instance |
-| `skills/` | Skills directory containing `/prd`, `/review-issues`, `/review-prs` |
+| `.claude-plugin/` | Plugin manifest and skills (`/prd`, `/review-issues`, `/review-prs`, `/qa-audit`) |
 
 ### Per-Project Files (created in target project)
 

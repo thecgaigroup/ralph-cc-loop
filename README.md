@@ -151,6 +151,29 @@ git clone https://github.com/thecgaigroup/ralph-cc-loop ~/tools/ralph-cc-loop
 alias ralph="~/tools/ralph-cc-loop/ralph.sh"
 ```
 
+### Install Plugin (for /prd, /qa-audit, etc.)
+
+To use the skills as slash commands, install the plugin:
+
+```bash
+# Validate the plugin
+claude plugin validate ~/tools/ralph-cc-loop
+
+# Install globally (copy to Claude plugins cache)
+mkdir -p ~/.claude/plugins/cache/local/ralph-claude-code/1.1.0
+cp -R ~/tools/ralph-cc-loop/.claude-plugin/* ~/.claude/plugins/cache/local/ralph-claude-code/1.1.0/
+
+# Add to installed plugins
+# (Or restart Claude Code and use --plugin-dir flag once)
+claude --plugin-dir ~/tools/ralph-cc-loop
+```
+
+After installation, restart Claude Code to use:
+- `/prd` - Create PRD interactively
+- `/review-issues` - Generate PRD from GitHub issues
+- `/review-prs` - Review and merge PRs
+- `/qa-audit` - Production readiness audit
+
 Then run against any project:
 ```bash
 ~/tools/ralph-cc-loop/ralph.sh ~/Projects/my-app
@@ -373,7 +396,7 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 |------|----------|---------|
 | `ralph.sh` | Ralph install | The bash loop that spawns Claude Code instances |
 | `prompt.md` | Ralph install | Instructions given to each Claude Code instance |
-| `skills/` | Ralph install | Skills like `/review-issues` and `/review-prs` |
+| `.claude-plugin/` | Ralph install | Plugin manifest and skills (`/prd`, `/review-issues`, `/review-prs`, `/qa-audit`) |
 | `prd.json` | Target project | User stories with `passes` status |
 | `progress.txt` | Target project | Append-only learnings (created by Ralph) |
 | `ralph-output.log` | Target project | Full Claude output (created by Ralph) |
