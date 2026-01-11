@@ -17,7 +17,7 @@ Ralph is an autonomous AI agent loop that runs Claude Code CLI repeatedly to imp
 │  ~/tools/ralph-claude-code/     (Ralph install directory)  │
 │  ├── ralph.sh                   ← Run from here            │
 │  ├── prompt.md                  ← Instructions for Claude  │
-│  └── skills/                    ← /prd, /review-issues, etc│
+│  └── .claude-plugin/skills/     ← 12 skills (see below)    │
 │                                                             │
 │  ~/Projects/my-app/             (Target project)           │
 │  ├── prd.json                   ← Ralph reads this         │
@@ -104,7 +104,7 @@ The repo is determined in this order:
 |------|---------|
 | `ralph.sh` | Bash loop that spawns Claude Code instances with `--print --dangerously-skip-permissions` |
 | `prompt.md` | Instructions fed to each Claude Code instance |
-| `.claude-plugin/` | Plugin manifest and skills (`/prd`, `/review-issues`, `/review-prs`, `/qa-audit`) |
+| `.claude-plugin/` | Plugin manifest (v2.1.0) and 12 skills |
 
 ### Per-Project Files (created in target project)
 
@@ -198,17 +198,44 @@ Common skip reasons (logged to progress.txt):
 
 ## Skills
 
+Ralph includes 12 skills organized into four categories:
+
+### Core Workflow
 | Skill | Purpose |
 |-------|---------|
 | `/prd` | Interactively create a PRD by breaking down a feature |
 | `/review-issues` | Review GitHub issues and generate PRD (scans codebase for context) |
 | `/review-prs` | Review, approve, and merge GitHub PRs |
 
-Example:
+### Quality & Audit
+| Skill | Purpose |
+|-------|---------|
+| `/qa-audit` | Production readiness audit with full remediation |
+| `/test-coverage` | Find untested code and generate tests |
+| `/a11y-audit` | WCAG accessibility audit and remediation |
+| `/perf-audit` | Performance profiling and optimization |
+
+### Maintenance
+| Skill | Purpose |
+|-------|---------|
+| `/deps-update` | Update dependencies, fix vulnerabilities, create PRs |
+| `/refactor` | Detect code smells, reduce complexity, apply patterns |
+| `/migrate` | Framework/version migration (React, Node, ESM, etc.) |
+
+### Documentation
+| Skill | Purpose |
+|-------|---------|
+| `/docs-gen` | Generate/update README, API docs, architecture docs |
+| `/onboard` | Create new developer onboarding documentation |
+
+### Examples
 ```bash
 claude /review-issues --repo owner/repo --issue 13,14,15
 claude /review-issues --repo owner/repo --label bug
 claude /review-prs --auto-merge --dependabot-only
+claude /qa-audit ~/Projects/my-app --env staging
+claude /deps-update ~/Projects/my-app
+claude /test-coverage ~/Projects/my-app
 ```
 
 ## Scheduling Ralph (macOS launchd)

@@ -67,15 +67,30 @@ Examples:
 
 ```
 ralph-cc-loop/
-├── ralph.sh          # Main loop script - core logic lives here
-├── prompt.md         # Instructions sent to each Claude instance
-├── skills/           # Claude Code skills
-│   ├── prd.md        # /prd - PRD generation
-│   ├── review-issues.md  # /review-issues - GitHub issue review
-│   └── review-prs.md     # /review-prs - PR review
-├── README.md         # User documentation
-├── CLAUDE.md         # Developer/AI guidance
-└── prd.json.example  # Example PRD template
+├── ralph.sh              # Main loop script - core logic lives here
+├── prompt.md             # Instructions sent to each Claude instance
+├── .claude-plugin/       # Claude Code plugin
+│   ├── plugin.json       # Plugin manifest with version
+│   └── skills/           # 12 Claude Code skills
+│       ├── prd.md            # /prd - PRD generation
+│       ├── review-issues.md  # /review-issues - GitHub issue review
+│       ├── review-prs.md     # /review-prs - PR review
+│       ├── qa-audit.md       # /qa-audit - Production readiness audit
+│       ├── test-coverage.md  # /test-coverage - Test coverage analysis
+│       ├── a11y-audit.md     # /a11y-audit - Accessibility audit
+│       ├── perf-audit.md     # /perf-audit - Performance audit
+│       ├── deps-update.md    # /deps-update - Dependency updates
+│       ├── refactor.md       # /refactor - Code refactoring
+│       ├── migrate.md        # /migrate - Framework migrations
+│       ├── docs-gen.md       # /docs-gen - Documentation generation
+│       └── onboard.md        # /onboard - Onboarding docs
+├── docs/                 # Additional documentation
+│   ├── ralph-comparison.md   # Comparison with ralph-wiggum
+│   └── images/               # Documentation images
+├── README.md             # User documentation
+├── CLAUDE.md             # Developer/AI guidance
+├── CONTRIBUTING.md       # This file
+└── prd.json.example      # Example PRD template
 ```
 
 ## Questions?

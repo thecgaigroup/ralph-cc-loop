@@ -1,5 +1,7 @@
 # Ralph Comparison: ralph-cc-loop vs ralph-wiggum
 
+> **Ralph v2.1.0** includes 12 skills for comprehensive project automation.
+
 This document compares the two Ralph systems available for iterative Claude Code execution.
 
 ## Overview
@@ -104,6 +106,13 @@ cat ~/Projects/my-app/prd.json
 # 5. Review and merge PRs
 claude /review-prs --auto-merge
 ```
+
+### Skills Available (v2.1.0)
+
+**Core:** `/prd`, `/review-issues`, `/review-prs`
+**Quality:** `/qa-audit`, `/test-coverage`, `/a11y-audit`, `/perf-audit`
+**Maintenance:** `/deps-update`, `/refactor`, `/migrate`
+**Docs:** `/docs-gen`, `/onboard`
 
 ### ralph-wiggum workflow
 

@@ -1,5 +1,10 @@
 # QA Loop Proposal for Ralph
 
+> **Status: Implemented** ✅
+>
+> This proposal has been implemented as the `/qa-audit` skill in v2.1.0.
+> See `.claude-plugin/skills/qa-audit.md` for the full implementation.
+
 ## Executive Summary
 
 This document proposes a structured approach to running QA audits via Ralph. Instead of a monolithic prompt, we break the QA process into discrete, trackable stories that Ralph can execute iteratively.
@@ -246,9 +251,25 @@ Instead of the exhaustive list, focus on **actionable, automatable checks**:
 2. **Rate limiting**: Present or documented as out-of-scope
 3. **Logging practices**: No secrets in logs
 
-## Next Steps
+## Implementation Status
 
-1. Create `/qa-audit` skill in `skills/qa-audit.md`
-2. Test on a sample project
-3. Iterate based on real-world usage
-4. Consider: QA-specific prompt.md variant?
+All features from this proposal have been implemented:
+
+- ✅ `/qa-audit` skill created in `.claude-plugin/skills/qa-audit.md`
+- ✅ Story templates for Environment, Security, Testing, Documentation
+- ✅ Story dependencies and priority ordering
+- ✅ Browser testing with graceful fallback
+- ✅ Full remediation mode (not just audit)
+- ✅ Credentials collection for browser/API/AWS auth
+
+### Usage
+
+```bash
+# Run a full QA audit with remediation
+claude /qa-audit ~/Projects/my-app --env local
+
+# Just run security checks
+claude /qa-audit ~/Projects/my-app --scope security
+```
+
+See the skill documentation for complete usage details.

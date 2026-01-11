@@ -2,6 +2,13 @@
   <img src="docs/images/ralph.png" alt="Ralph" width="400">
 </p>
 
+<p align="center">
+  <strong>v2.1.0</strong> ·
+  <a href="#skills">12 Skills</a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="docs/ralph-comparison.md">vs Ralph Wiggum</a>
+</p>
+
 # Ralph for Claude Code CLI
 
 An autonomous AI agent loop that runs Claude Code CLI repeatedly until all PRD items are complete.
@@ -160,8 +167,8 @@ To use the skills as slash commands, install the plugin:
 claude plugin validate ~/tools/ralph-cc-loop
 
 # Install globally (copy to Claude plugins cache)
-mkdir -p ~/.claude/plugins/cache/local/ralph-claude-code/2.0.0
-cp -R ~/tools/ralph-cc-loop/.claude-plugin/* ~/.claude/plugins/cache/local/ralph-claude-code/2.0.0/
+mkdir -p ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0
+cp -R ~/tools/ralph-cc-loop/.claude-plugin/* ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0/
 
 # Add to installed plugins
 # (Or restart Claude Code and use --plugin-dir flag once)
