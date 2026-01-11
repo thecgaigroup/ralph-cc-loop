@@ -16,6 +16,58 @@ You are running a comprehensive QA audit on a project. This skill:
 - **Project path**: Where the code lives (local folder)
 - **Target environment**: Where to run tests (localhost, dev URL, prod URL)
 
+## Remediation Philosophy
+
+This audit performs **full remediation** - not just reporting issues, but fixing them:
+
+### Remediation Tiers
+
+| Tier | Action | Examples |
+|------|--------|----------|
+| **Auto-fix** | Fix immediately, no user input needed | Add `.env.test` to `.gitignore`, create `.env.example`, fix lint errors |
+| **Fix with confirmation** | Fix after brief user confirmation | Update vulnerable dependencies, add missing test files |
+| **Document + Follow-up** | Document issue, create follow-up story | Refactor insecure auth pattern, major architectural changes |
+| **Manual required** | Document with clear instructions | Rotate compromised credentials, configure external services |
+
+### Story Behavior
+
+Each QA story will:
+1. **Identify** - Find all issues in its domain
+2. **Triage** - Categorize by severity and remediation tier
+3. **Fix** - Auto-fix what's safe, prompt for confirmation on others
+4. **Document** - Log all findings and actions to `QA_PROGRESS.md`
+5. **Follow-up** - Add new stories to `prd.json` for complex remediation
+
+### Follow-up Story Generation
+
+When a story finds issues that can't be auto-fixed, it creates follow-up stories:
+
+```json
+{
+  "id": "QA-REM-001",
+  "title": "Remediate: [specific issue]",
+  "description": "Follow-up from QA-SEC-001: [details]",
+  "acceptanceCriteria": ["[specific fix actions]"],
+  "priority": [based on severity],
+  "passes": false,
+  "category": "remediation",
+  "sourceStory": "QA-SEC-001",
+  "severity": "HIGH"
+}
+```
+
+Follow-up stories are appended to `prd.json` so Ralph continues processing them.
+
+### Severity → Priority Mapping
+
+| Severity | Priority | Action |
+|----------|----------|--------|
+| CRITICAL | 1 | Block audit, fix immediately |
+| HIGH | 2-3 | Fix before audit completes |
+| MEDIUM | 10-20 | Create follow-up story |
+| LOW | 50+ | Document, optional follow-up |
+| INFO | - | Document only, no follow-up |
+
 ## Phase 1: Project Discovery
 
 ### Step 1.1: Locate Project
@@ -387,15 +439,19 @@ Generate stories based on project type. Include ALL applicable stories - this is
 {
   "id": "QA-SEC-001",
   "title": "Secrets and configuration hygiene audit",
-  "description": "Verify no secrets committed, environment variables properly handled",
+  "description": "Find and remediate secrets issues - auto-fix config, flag code changes",
   "acceptanceCriteria": [
-    "Grep codebase for hardcoded secrets (API keys, passwords, tokens)",
-    "Verify .env.example exists with all required variables (no real values)",
-    "Verify .gitignore includes: .env*, *.pem, *.key, credentials*, secrets*",
-    "Check for secrets in config files, constants, or hardcoded strings",
-    "All findings logged to QA_PROGRESS.md with severity"
+    "IDENTIFY: Grep codebase for hardcoded secrets (API keys, passwords, tokens, connection strings)",
+    "IDENTIFY: Check for secrets in config files, constants, or environment-specific code",
+    "AUTO-FIX: Create .env.example if missing (extract var names from code, no values)",
+    "AUTO-FIX: Update .gitignore to include: .env*, *.pem, *.key, credentials*, secrets*, .env.test",
+    "AUTO-FIX: Add .env.local, .env.production to .gitignore if not present",
+    "FIX+CONFIRM: If secrets found in committed files, remove and add to .env.example",
+    "FOLLOW-UP: Create QA-REM story for each hardcoded secret that needs code refactor",
+    "FOLLOW-UP: If secrets were ever committed, create story for credential rotation",
+    "DOCUMENT: Log all findings and remediations to QA_PROGRESS.md"
   ],
-  "files": [".env.example", ".gitignore", "QA_PROGRESS.md"],
+  "files": [".env.example", ".gitignore", "QA_PROGRESS.md", "prd.json"],
   "dependsOn": [],
   "priority": 2,
   "passes": false,
@@ -410,15 +466,21 @@ Generate stories based on project type. Include ALL applicable stories - this is
 ```json
 {
   "id": "QA-SEC-002",
-  "title": "Dependency vulnerability scan",
-  "description": "Run dependency audit and address critical vulnerabilities",
+  "title": "Dependency vulnerability scan and remediation",
+  "description": "Find vulnerabilities and fix them - auto-update safe deps, flag breaking changes",
   "acceptanceCriteria": [
-    "Run appropriate audit command (npm audit / pip audit / cargo audit / etc.)",
-    "Critical vulnerabilities: 0 remaining (fix or document exception)",
-    "High vulnerabilities: addressed or documented with risk acceptance rationale",
-    "Audit summary logged to QA_PROGRESS.md"
+    "IDENTIFY: Run audit command (npm audit / pip audit / cargo audit / safety check)",
+    "IDENTIFY: Categorize vulnerabilities by severity and fix availability",
+    "AUTO-FIX: Run npm audit fix (or equivalent) for auto-fixable vulnerabilities",
+    "AUTO-FIX: Update patch versions of vulnerable packages",
+    "FIX+CONFIRM: For minor version updates, show changelog summary and confirm",
+    "FOLLOW-UP: Create QA-REM story for each major version update needed",
+    "FOLLOW-UP: Create QA-REM story for vulnerabilities with no fix available (document workaround)",
+    "VERIFY: Re-run audit after fixes - critical count must be 0",
+    "VERIFY: Run tests after dependency updates to catch breakage",
+    "DOCUMENT: Log before/after vulnerability counts to QA_PROGRESS.md"
   ],
-  "files": ["QA_PROGRESS.md", "package.json"],
+  "files": ["QA_PROGRESS.md", "package.json", "package-lock.json", "prd.json"],
   "dependsOn": [],
   "priority": 3,
   "passes": false,
@@ -463,17 +525,23 @@ Generate stories based on project type. Include ALL applicable stories - this is
 ```json
 {
   "id": "QA-SEC-004",
-  "title": "Input validation and injection prevention check",
-  "description": "Verify user inputs are validated and injection attacks prevented",
+  "title": "Input validation and injection prevention - find and fix",
+  "description": "Identify injection risks and remediate - auto-fix simple cases, refactor complex ones",
   "acceptanceCriteria": [
-    "Form inputs have appropriate validation (client and server)",
-    "SQL queries use parameterized statements or ORM (no string concatenation)",
-    "User content is escaped/sanitized before rendering (XSS prevention)",
-    "File uploads validate type and size (if applicable)",
-    "Error responses don't leak stack traces or internal details",
-    "Findings logged to QA_PROGRESS.md"
+    "IDENTIFY: Scan for SQL string concatenation patterns (potential SQL injection)",
+    "IDENTIFY: Scan for innerHTML/dangerouslySetInnerHTML without sanitization (XSS)",
+    "IDENTIFY: Scan for unvalidated user input in shell commands (command injection)",
+    "IDENTIFY: Check file upload handlers for type/size validation",
+    "AUTO-FIX: Add input validation library if missing (zod, joi, etc.)",
+    "AUTO-FIX: Replace innerHTML with textContent where possible",
+    "AUTO-FIX: Add basic input sanitization helpers",
+    "FIX+CONFIRM: Refactor simple SQL concatenation to parameterized queries",
+    "FOLLOW-UP: Create QA-REM story for complex injection patterns needing refactor",
+    "FOLLOW-UP: Create QA-REM story if file upload security needs overhaul",
+    "VERIFY: Add/run tests for injection prevention",
+    "DOCUMENT: Log all findings with code locations to QA_PROGRESS.md"
   ],
-  "files": ["QA_PROGRESS.md"],
+  "files": ["QA_PROGRESS.md", "prd.json"],
   "dependsOn": ["QA-ENV-001"],
   "priority": 5,
   "passes": false,
@@ -515,17 +583,23 @@ Generate stories based on project type. Include ALL applicable stories - this is
 ```json
 {
   "id": "QA-TEST-001",
-  "title": "Test suite assessment and validation",
-  "description": "Evaluate existing tests, run them, identify critical gaps",
+  "title": "Test suite assessment and gap remediation",
+  "description": "Evaluate tests, fix failures, add missing critical tests",
   "acceptanceCriteria": [
-    "Test command identified and documented",
-    "All existing tests pass (or failures documented)",
-    "Test coverage measured (if coverage tool available)",
-    "Critical untested code paths identified",
-    "At least 1 critical missing test added (if gaps found)",
-    "Test summary logged to QA_PROGRESS.md"
+    "IDENTIFY: Find test command and run full suite",
+    "IDENTIFY: Measure coverage (add coverage tool if missing: nyc, c8, coverage.py)",
+    "IDENTIFY: List critical code paths without test coverage",
+    "AUTO-FIX: Fix simple test failures (outdated snapshots, minor assertion fixes)",
+    "AUTO-FIX: Add test config if missing (jest.config.js, vitest.config.ts, pytest.ini)",
+    "AUTO-FIX: Add at least 3 critical missing unit tests for core functionality",
+    "FIX+CONFIRM: Fix complex test failures after showing root cause",
+    "FOLLOW-UP: Create QA-REM story for each major untested module",
+    "FOLLOW-UP: Create QA-REM story if test infrastructure needs setup",
+    "VERIFY: All tests pass after fixes",
+    "VERIFY: Coverage improved or baseline documented",
+    "DOCUMENT: Log coverage %, test count, and gaps to QA_PROGRESS.md"
   ],
-  "files": ["QA_PROGRESS.md"],
+  "files": ["QA_PROGRESS.md", "prd.json"],
   "dependsOn": [],
   "priority": 7,
   "passes": false,
@@ -542,20 +616,22 @@ Generate stories based on project type. Include ALL applicable stories - this is
 ```json
 {
   "id": "QA-TEST-002",
-  "title": "E2E smoke test suite",
-  "description": "Create or verify basic E2E smoke tests using Playwright (headless)",
+  "title": "E2E smoke test suite - create and verify",
+  "description": "Set up Playwright, create smoke tests, fix any failures",
   "acceptanceCriteria": [
-    "Playwright configured (or install if not present)",
-    "If auth required: configure Playwright to use storageState.json or .env.test credentials",
-    "Smoke test covers: app loads successfully, no console errors",
-    "Basic navigation works (click through main routes)",
-    "Tests run in headless mode by default",
-    "If Playwright unavailable: use Claude Chrome MCP as fallback",
-    "If no browser tools: document manual test steps",
-    "If credentials missing: prompt user or skip auth-required tests with note",
-    "Results logged to QA_PROGRESS.md"
+    "AUTO-FIX: Install Playwright if not present (npm init playwright@latest)",
+    "AUTO-FIX: Create playwright.config.ts with headless default",
+    "AUTO-FIX: Configure auth using storageState.json or .env.test credentials",
+    "AUTO-FIX: Create smoke test file (e2e/smoke.spec.ts) if missing",
+    "AUTO-FIX: Add smoke tests: app loads, no console errors, main nav works",
+    "FIX+CONFIRM: If smoke tests fail, fix the issues (broken selectors, timing)",
+    "FALLBACK: If Playwright unavailable, use Claude Chrome MCP for manual verification",
+    "FALLBACK: If no browser tools, document manual test steps in QA_PROGRESS.md",
+    "FOLLOW-UP: Create QA-REM story if app has critical bugs blocking smoke tests",
+    "VERIFY: All smoke tests pass in headless mode",
+    "DOCUMENT: Log test results, screenshots of failures to QA_PROGRESS.md"
   ],
-  "files": ["QA_PROGRESS.md", "e2e/", "playwright.config.ts"],
+  "files": ["QA_PROGRESS.md", "e2e/smoke.spec.ts", "playwright.config.ts", "prd.json"],
   "dependsOn": ["QA-ENV-001"],
   "priority": 8,
   "passes": false,
@@ -679,18 +755,22 @@ Generate stories based on project type. Include ALL applicable stories - this is
 ```json
 {
   "id": "QA-DOC-001",
-  "title": "Documentation validation",
-  "description": "Verify documentation is accurate and complete",
+  "title": "Documentation validation and fixes",
+  "description": "Verify docs are accurate - fix inaccuracies, add missing sections",
   "acceptanceCriteria": [
-    "README has accurate setup instructions",
-    "Environment variables documented",
-    "Test commands documented and work",
-    "API documentation accurate (if applicable)",
-    "Deployment instructions present or linked",
-    "Documentation tested by following instructions",
-    "Gaps logged to QA_PROGRESS.md"
+    "IDENTIFY: Test README setup instructions by following them",
+    "IDENTIFY: Check all documented commands actually work",
+    "IDENTIFY: Verify environment variables are documented",
+    "AUTO-FIX: Update README with correct setup steps if outdated",
+    "AUTO-FIX: Add Environment Variables section if missing",
+    "AUTO-FIX: Add or update test command documentation",
+    "AUTO-FIX: Add basic API documentation if endpoints exist but undocumented",
+    "FIX+CONFIRM: Update deployment instructions if outdated",
+    "FOLLOW-UP: Create QA-REM story for major documentation overhaul",
+    "VERIFY: New developer could set up project using only README",
+    "DOCUMENT: Log documentation gaps and fixes to QA_PROGRESS.md"
   ],
-  "files": ["README.md", "QA_PROGRESS.md"],
+  "files": ["README.md", "QA_PROGRESS.md", "prd.json"],
   "dependsOn": ["QA-ENV-001"],
   "priority": 12,
   "passes": false,
@@ -732,14 +812,25 @@ Generate stories based on project type. Include ALL applicable stories - this is
 ```json
 {
   "id": "QA-FINAL-001",
-  "title": "Generate audit summary and recommendations",
-  "description": "Compile all findings into final audit report",
+  "title": "Compile audit results and remaining remediation",
+  "description": "Summarize what was fixed, what remains, production readiness assessment",
   "acceptanceCriteria": [
-    "QA_PROGRESS.md has complete findings summary table",
-    "All CRITICAL findings addressed or have action items",
-    "All HIGH findings documented with remediation plan",
-    "Recommendations section added with prioritized next steps",
-    "Overall production readiness assessment: READY / NEEDS WORK / NOT READY"
+    "COMPILE: Count total issues found across all stories",
+    "COMPILE: Count issues auto-fixed vs requiring follow-up",
+    "COMPILE: List all QA-REM follow-up stories created",
+    "VERIFY: All CRITICAL issues have been remediated (not just documented)",
+    "VERIFY: All HIGH issues either fixed or have QA-REM follow-up story",
+    "VERIFY: Tests pass, lint passes, typecheck passes",
+    "ASSESS: Production readiness verdict with rationale:",
+    "  - READY: All critical/high fixed, tests pass, no blocking issues",
+    "  - READY WITH CAVEATS: Minor issues remain, documented",
+    "  - NEEDS WORK: Follow-up stories must complete first",
+    "  - NOT READY: Critical issues unresolved",
+    "DOCUMENT: Final summary in QA_PROGRESS.md with:",
+    "  - Issues found / fixed / remaining",
+    "  - Follow-up stories pending",
+    "  - Production readiness verdict",
+    "  - Recommended next actions"
   ],
   "files": ["QA_PROGRESS.md"],
   "dependsOn": ["QA-ENV-001", "QA-SEC-001", "QA-SEC-002", "QA-TEST-001", "QA-DOC-001"],
