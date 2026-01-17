@@ -9,6 +9,28 @@ Thanks for your interest in contributing to Ralph! This document provides guidel
 - **Documentation**: Improve README, CLAUDE.md, or add examples
 - **Code**: Fix bugs or implement new features
 
+## Development Environment
+
+Ralph uses a three-folder structure for development:
+
+```
+~/tools/ralph-cc-loop/        # Main working copy (optional)
+~/Projects/cgai/
+├── dev-ralph-cc-loop/        # Development - push DISABLED
+└── prod-ralph-cc-loop/       # Production - push ENABLED
+```
+
+| Folder | Purpose | Git Push |
+|--------|---------|----------|
+| `dev-*` | Testing, running Ralph, making changes | Disabled |
+| `prod-*` | Pushing to GitHub, creating PRs | Enabled |
+
+### Why This Setup?
+
+- **Safe testing**: Can't accidentally push incomplete work from dev
+- **Clean separation**: Dev can have PRD files, logs, experiments
+- **Controlled releases**: Only intentional changes go through prod
+
 ## Getting Started
 
 1. Fork the repository
@@ -62,6 +84,98 @@ Examples:
    - Clear description of what changed and why
    - Link to related issue (if applicable)
    - Any testing you performed
+
+## Development Workflow
+
+### Making Changes (Dev → Prod → GitHub)
+
+**1. Work in dev folder:**
+```bash
+cd ~/Projects/cgai/dev-ralph-cc-loop
+
+# Make changes, run Ralph, test, etc.
+./ralph.sh .                    # Run Ralph on a PRD
+./ralph.sh --check-deps         # Test installation verification
+```
+
+**2. When ready to push, sync to prod:**
+```bash
+# Sync files from dev to prod (excludes .git, prd.json, logs)
+rsync -av \
+  --exclude='.git' \
+  --exclude='prd.json' \
+  --exclude='progress.txt' \
+  --exclude='ralph-output.log' \
+  --exclude='.last-branch' \
+  --exclude='archive' \
+  ~/Projects/cgai/dev-ralph-cc-loop/ \
+  ~/Projects/cgai/prod-ralph-cc-loop/
+```
+
+**3. Commit and push from prod:**
+```bash
+cd ~/Projects/cgai/prod-ralph-cc-loop
+
+# Create branch, commit, push
+git checkout -b feature/my-changes
+git add -A
+git commit -m "feat: description of changes"
+git push -u origin feature/my-changes
+
+# Create PR
+gh pr create --title "feat: My Changes" --body "Description..."
+```
+
+**4. After PR is merged, clean up:**
+```bash
+# Clean up prod
+cd ~/Projects/cgai/prod-ralph-cc-loop
+git checkout main && git pull origin main
+
+# Clean up dev
+cd ~/Projects/cgai/dev-ralph-cc-loop
+git checkout main && git pull origin main
+git branch -D feature/my-changes 2>/dev/null || true
+
+# Remove Ralph-generated files from dev
+rm -f prd.json progress.txt ralph-output.log .last-branch
+rm -rf archive
+```
+
+### Helper Script (Recommended)
+
+A `dev-workflow.sh` script automates the entire workflow:
+
+```bash
+# Show available commands
+./dev-workflow.sh
+
+# Sync dev → prod (no commit)
+./dev-workflow.sh sync
+
+# Full workflow: sync, commit, push, create PR
+./dev-workflow.sh push "feat: my new feature"
+
+# Merge PR and clean up everything
+./dev-workflow.sh merge 8
+
+# Just clean Ralph files from dev
+./dev-workflow.sh clean
+
+# Show status of both folders
+./dev-workflow.sh status
+```
+
+To set up the helper script, copy from the gist or create it locally (it's in .gitignore).
+
+### Manual Commands Reference
+
+| Action | Command |
+|--------|---------|
+| Sync dev → prod | `rsync -av --exclude='.git' --exclude='prd.json' --exclude='progress.txt' --exclude='ralph-output.log' --exclude='.last-branch' --exclude='archive' ~/Projects/cgai/dev-ralph-cc-loop/ ~/Projects/cgai/prod-ralph-cc-loop/` |
+| Merge PR (admin) | `gh pr merge <number> --squash --delete-branch --admin` |
+| Clean dev files | `rm -f prd.json progress.txt ralph-output.log .last-branch` |
+| Update both folders | `git checkout main && git pull origin main` |
 
 ## Project Structure
 
