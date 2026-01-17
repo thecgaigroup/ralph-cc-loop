@@ -6,23 +6,404 @@ VERSION="1.1.0"
 
 set -e
 
+# Detect platform for install instructions
+detect_platform() {
+  case "$(uname -s)" in
+    Darwin*) echo "macos" ;;
+    Linux*)  echo "linux" ;;
+    MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
+    *)       echo "unknown" ;;
+  esac
+}
+
+# Get install command for a tool based on platform
+get_install_cmd() {
+  local tool="$1"
+  local platform
+  platform=$(detect_platform)
+
+  case "$tool" in
+    jq)
+      case "$platform" in
+        macos)   echo "brew install jq" ;;
+        linux)   echo "sudo apt install jq  # or: sudo dnf install jq" ;;
+        *)       echo "See: https://jqlang.github.io/jq/download/" ;;
+      esac
+      ;;
+    gh)
+      case "$platform" in
+        macos)   echo "brew install gh" ;;
+        linux)   echo "See: https://github.com/cli/cli/blob/trunk/docs/install_linux.md" ;;
+        *)       echo "See: https://cli.github.com/" ;;
+      esac
+      ;;
+    claude)
+      echo "See: https://docs.anthropic.com/en/docs/claude-code"
+      ;;
+    git)
+      case "$platform" in
+        macos)   echo "brew install git  # or: xcode-select --install" ;;
+        linux)   echo "sudo apt install git  # or: sudo dnf install git" ;;
+        *)       echo "See: https://git-scm.com/downloads" ;;
+      esac
+      ;;
+    bash)
+      case "$platform" in
+        macos)   echo "brew install bash" ;;
+        linux)   echo "sudo apt install bash  # or: sudo dnf install bash" ;;
+        *)       echo "See: https://www.gnu.org/software/bash/" ;;
+      esac
+      ;;
+  esac
+}
+
+# Compare version strings (returns 0 if $1 >= $2, 1 otherwise)
+version_gte() {
+  local v1="$1"
+  local v2="$2"
+  # Use sort -V if available, fall back to basic comparison
+  if printf '%s\n%s\n' "$v2" "$v1" | sort -V 2>/dev/null | head -1 | grep -qF "$v2"; then
+    return 0
+  fi
+  # Fallback: simple numeric comparison of major.minor
+  local v1_major v1_minor v2_major v2_minor
+  v1_major=$(echo "$v1" | cut -d. -f1)
+  v1_minor=$(echo "$v1" | cut -d. -f2)
+  v2_major=$(echo "$v2" | cut -d. -f1)
+  v2_minor=$(echo "$v2" | cut -d. -f2)
+
+  if [ "$v1_major" -gt "$v2_major" ] 2>/dev/null; then
+    return 0
+  elif [ "$v1_major" -eq "$v2_major" ] 2>/dev/null && [ "$v1_minor" -ge "$v2_minor" ] 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+# Get tool version (returns version string or empty)
+get_version() {
+  local tool="$1"
+  case "$tool" in
+    jq)
+      jq --version 2>/dev/null | sed 's/jq-//' | head -1
+      ;;
+    gh)
+      gh --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1
+      ;;
+    claude)
+      # Claude CLI version format varies; try to extract version number
+      claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || \
+      claude --version 2>/dev/null | head -1
+      ;;
+    git)
+      git --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1
+      ;;
+    bash)
+      bash --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1
+      ;;
+  esac
+}
+
+# Check a single dependency with version requirement
+check_dep() {
+  local tool="$1"
+  local min_version="$2"
+  local required="${3:-true}"
+
+  # Check if command exists
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    if [ "$required" = "true" ]; then
+      echo "✗ $tool: NOT INSTALLED"
+      echo "  Install: $(get_install_cmd "$tool")"
+      return 1
+    else
+      echo "○ $tool: not installed (optional)"
+      return 0
+    fi
+  fi
+
+  # Get current version
+  local current_version
+  current_version=$(get_version "$tool")
+
+  if [ -z "$current_version" ]; then
+    echo "✓ $tool: installed (version unknown)"
+    return 0
+  fi
+
+  # Check version if minimum specified
+  if [ -n "$min_version" ]; then
+    if version_gte "$current_version" "$min_version"; then
+      echo "✓ $tool: $current_version (>= $min_version required)"
+      return 0
+    else
+      echo "✗ $tool: $current_version (>= $min_version required)"
+      echo "  Upgrade: $(get_install_cmd "$tool")"
+      return 1
+    fi
+  else
+    echo "✓ $tool: $current_version"
+    return 0
+  fi
+}
+
+# Special check for bash (3.2+ works, 4.0+ recommended)
+check_dep_bash() {
+  if ! command -v bash >/dev/null 2>&1; then
+    echo "✗ bash: NOT INSTALLED"
+    echo "  Install: $(get_install_cmd bash)"
+    return 1
+  fi
+
+  local current_version
+  current_version=$(get_version bash)
+
+  if [ -z "$current_version" ]; then
+    echo "✓ bash: installed (version unknown)"
+    return 0
+  fi
+
+  # Must be at least 3.2
+  if ! version_gte "$current_version" "3.2"; then
+    echo "✗ bash: $current_version (>= 3.2 required)"
+    echo "  Upgrade: $(get_install_cmd bash)"
+    return 1
+  fi
+
+  # Warn if under 4.0 but don't fail
+  if version_gte "$current_version" "4.0"; then
+    echo "✓ bash: $current_version (>= 4.0 recommended)"
+  else
+    echo "⚠ bash: $current_version (works, but 4.0+ recommended)"
+    echo "  Upgrade: $(get_install_cmd bash)"
+  fi
+  return 0
+}
+
+# Check GitHub authentication
+check_gh_auth() {
+  if gh auth status >/dev/null 2>&1; then
+    local user
+    user=$(gh api user -q '.login' 2>/dev/null || echo "authenticated")
+    echo "✓ gh auth: logged in as $user"
+    return 0
+  else
+    echo "✗ gh auth: NOT AUTHENTICATED"
+    echo "  Run: gh auth login"
+    return 1
+  fi
+}
+
+# Check Claude CLI authentication
+check_claude_auth() {
+  # Try to run a simple claude command to verify auth
+  # Using 'claude --version' doesn't check auth, so we try a minimal prompt
+  if claude --version >/dev/null 2>&1; then
+    # Claude is installed; we can't easily verify auth without running a prompt
+    # Check if there's a config file or auth indicator
+    local config_dir="$HOME/.claude"
+    if [ -d "$config_dir" ]; then
+      echo "✓ claude auth: configured (config directory exists)"
+      return 0
+    else
+      echo "⚠ claude auth: not configured (run 'claude' to authenticate)"
+      echo "  Visit: https://docs.anthropic.com/en/docs/claude-code"
+      return 0  # Don't fail - user may authenticate on first run
+    fi
+  else
+    echo "✗ claude: NOT INSTALLED"
+    echo "  Install: $(get_install_cmd claude)"
+    return 1
+  fi
+}
+
+# Check plugin directory structure
+check_plugin_structure() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local plugin_dir="$script_dir/.claude-plugin"
+  local has_issues=0
+
+  # Check plugin.json exists
+  if [ -f "$plugin_dir/plugin.json" ]; then
+    if jq empty "$plugin_dir/plugin.json" 2>/dev/null; then
+      local version
+      version=$(jq -r '.version // "unknown"' "$plugin_dir/plugin.json")
+      echo "✓ plugin.json: valid (v$version)"
+    else
+      echo "✗ plugin.json: invalid JSON"
+      has_issues=1
+    fi
+  else
+    echo "✗ plugin.json: NOT FOUND"
+    echo "  Expected at: $plugin_dir/plugin.json"
+    has_issues=1
+  fi
+
+  # Check skills directory exists and count skills
+  local skills_dir="$plugin_dir/skills"
+  if [ -d "$skills_dir" ]; then
+    local skill_count
+    skill_count=$(find "$skills_dir" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$skill_count" -gt 0 ]; then
+      echo "✓ skills/: $skill_count skill(s) found"
+    else
+      echo "⚠ skills/: directory exists but no skills found"
+      has_issues=1
+    fi
+  else
+    echo "✗ skills/: directory NOT FOUND"
+    echo "  Expected at: $skills_dir"
+    has_issues=1
+  fi
+
+  # Check essential files exist
+  if [ -f "$script_dir/prompt.md" ]; then
+    echo "✓ prompt.md: found"
+  else
+    echo "✗ prompt.md: NOT FOUND"
+    echo "  Expected at: $script_dir/prompt.md"
+    has_issues=1
+  fi
+
+  return $has_issues
+}
+
+# Full dependency check with detailed output
+check_deps() {
+  local verbose="${1:-false}"
+  local has_errors=0
+
+  echo ""
+  echo "╔═══════════════════════════════════════════════════════╗"
+  echo "║           Ralph Installation Verification             ║"
+  echo "╚═══════════════════════════════════════════════════════╝"
+  echo ""
+  echo "  Checking required dependencies..."
+  echo ""
+
+  # Required dependencies with minimum versions
+  # Note: bash 3.2+ works, but 4.0+ is recommended
+  check_dep_bash || has_errors=1
+  check_dep "git" "2.0" "true" || has_errors=1
+  check_dep "jq" "1.6" "true" || has_errors=1
+  check_dep "gh" "2.0" "true" || has_errors=1
+  check_dep "claude" "" "true" || has_errors=1
+
+  echo ""
+  echo "  Checking authentication..."
+  echo ""
+
+  check_gh_auth || has_errors=1
+  check_claude_auth || has_errors=1
+
+  echo ""
+  echo "  Checking Ralph installation..."
+  echo ""
+
+  check_plugin_structure || has_errors=1
+
+  if [ "$verbose" = "true" ]; then
+    echo ""
+    echo "  Platform: $(detect_platform)"
+    echo "  Shell: $SHELL"
+    echo "  Ralph location: $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  fi
+
+  echo ""
+  if [ "$has_errors" -eq 0 ]; then
+    echo "  ────────────────────────────────────────────────────"
+    echo "  ✓ All checks passed! Ralph is ready to use."
+    echo "  ────────────────────────────────────────────────────"
+    echo ""
+    echo "  Next steps:"
+    echo "    1. Create a prd.json in your project directory"
+    echo "    2. Run: ./ralph.sh <project-dir>"
+    echo ""
+    echo "  Or generate a PRD from GitHub issues:"
+    echo "    ./ralph.sh --from-issues <project-dir> --label bug"
+    echo ""
+  else
+    echo "  ────────────────────────────────────────────────────"
+    echo "  ✗ Some checks failed (see above)"
+    echo "  ────────────────────────────────────────────────────"
+    echo ""
+    echo "  Fix the issues above and run --check-deps again."
+    echo ""
+  fi
+
+  return $has_errors
+}
+
+# Quick dependency check (for normal runs - minimal output)
+quick_check_deps() {
+  local errors=""
+
+  # Check jq
+  if ! command -v jq >/dev/null 2>&1; then
+    errors="$errors\nError: jq is required but not installed.\n  Install: $(get_install_cmd jq)"
+  else
+    local jq_ver
+    jq_ver=$(get_version jq)
+    if [ -n "$jq_ver" ] && ! version_gte "$jq_ver" "1.6"; then
+      errors="$errors\nError: jq $jq_ver is too old (>= 1.6 required).\n  Upgrade: $(get_install_cmd jq)"
+    fi
+  fi
+
+  # Check gh
+  if ! command -v gh >/dev/null 2>&1; then
+    errors="$errors\nError: gh (GitHub CLI) is required but not installed.\n  Install: $(get_install_cmd gh)"
+  else
+    local gh_ver
+    gh_ver=$(get_version gh)
+    if [ -n "$gh_ver" ] && ! version_gte "$gh_ver" "2.0"; then
+      errors="$errors\nError: gh $gh_ver is too old (>= 2.0 required).\n  Upgrade: $(get_install_cmd gh)"
+    fi
+  fi
+
+  # Check claude
+  if ! command -v claude >/dev/null 2>&1; then
+    errors="$errors\nError: claude CLI is required but not installed.\n  Install: $(get_install_cmd claude)"
+  fi
+
+  # Check git
+  if ! command -v git >/dev/null 2>&1; then
+    errors="$errors\nError: git is required but not installed.\n  Install: $(get_install_cmd git)"
+  fi
+
+  # Print any errors and exit
+  if [ -n "$errors" ]; then
+    echo -e "$errors"
+    echo ""
+    echo "Run './ralph.sh --check-deps' for detailed dependency information."
+    exit 1
+  fi
+
+  # Check GitHub authentication
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "Error: GitHub CLI is not authenticated."
+    echo "Run: gh auth login"
+    exit 1
+  fi
+}
+
 # Handle version command (before dependency checks so it always works)
 if [ "$1" = "--version" ] || [ "$1" = "-v" ]; then
   echo "Ralph v$VERSION"
   exit 0
 fi
 
-# Check dependencies
-command -v jq >/dev/null 2>&1 || { echo "Error: jq is required but not installed. Run: brew install jq"; exit 1; }
-command -v claude >/dev/null 2>&1 || { echo "Error: claude CLI is required but not installed. See: https://docs.anthropic.com/claude-code"; exit 1; }
-command -v gh >/dev/null 2>&1 || { echo "Error: gh (GitHub CLI) is required but not installed. Run: brew install gh"; exit 1; }
-
-# Check GitHub authentication
-if ! gh auth status >/dev/null 2>&1; then
-  echo "Error: GitHub CLI is not authenticated."
-  echo "Run: gh auth login"
-  exit 1
+# Handle --check-deps command
+if [ "$1" = "--check-deps" ] || [ "$1" = "check-deps" ]; then
+  if check_deps "true"; then
+    exit 0
+  else
+    exit 1
+  fi
 fi
+
+# Quick dependency check for normal operation
+quick_check_deps
 
 # Status command function
 show_status() {
@@ -434,8 +815,17 @@ USAGE
   ./ralph.sh --from-issues <project>   Generate PRD from issues, then run
   ./ralph.sh status <project>          Check PRD progress
   ./ralph.sh --dry-run <project>       Preview what Ralph would do
+  ./ralph.sh --check-deps              Verify installation is complete
   ./ralph.sh help                      Show this help message
   ./ralph.sh --version                 Show version information
+
+VERIFICATION
+  The --check-deps command verifies:
+    - Required tools: bash, git, jq, gh, claude
+    - Minimum versions: git 2.0+, jq 1.6+, gh 2.0+, bash 3.2+
+    - GitHub CLI authentication (gh auth status)
+    - Claude CLI configuration (~/.claude directory)
+    - Ralph plugin structure (plugin.json, skills/, prompt.md)
 
 ARGUMENTS
   <project>      Path to project directory containing prd.json

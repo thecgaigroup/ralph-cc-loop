@@ -1,6 +1,6 @@
 # Ralph Comparison: ralph-cc-loop vs ralph-wiggum
 
-> **Ralph v2.1.0** includes 12 skills for comprehensive project automation.
+> **Ralph v2.1.0** includes 13 skills for comprehensive project automation.
 
 This document compares the two Ralph systems available for iterative Claude Code execution.
 
@@ -84,9 +84,9 @@ email verification, password reset, and role-based permissions"
 # Ralph breaks it into ~8-12 right-sized stories with dependencies
 ```
 
-### 12 Automation Skills
+### 13 Automation Skills
 
-The Claude Code version includes 12 skills that the Amp version doesn't have:
+The Claude Code version includes 13 skills that the Amp version doesn't have:
 
 | Skill | What It Does | Amp Equivalent |
 |-------|--------------|----------------|
@@ -102,6 +102,7 @@ The Claude Code version includes 12 skills that the Amp version doesn't have:
 | `/migrate` | Framework/version migrations | ❌ None |
 | `/docs-gen` | Auto-generate documentation | ❌ None |
 | `/onboard` | Create onboarding docs | ❌ None |
+| `/security-audit` | Security vulnerabilities & OWASP | ❌ None |
 
 ### End-to-End Automation
 
@@ -123,7 +124,7 @@ claude /deps-update ~/Projects/my-app       # Update dependencies
 | Thread references | Uses `$AMP_CURRENT_THREAD_ID` | Not available |
 | Browser tool | `dev-browser` skill | MCP browser tools |
 | Config files | `AGENTS.md` | `CLAUDE.md` |
-| Skills/Plugins | Limited | 12 built-in skills |
+| Skills/Plugins | Limited | 13 built-in skills |
 | PRD decomposition | Manual | Automatic via `/prd` |
 
 ## When to Use Each
@@ -171,6 +172,7 @@ claude /review-prs --auto-merge
 
 **Core:** `/prd`, `/review-issues`, `/review-prs`
 **Quality:** `/qa-audit`, `/test-coverage`, `/a11y-audit`, `/perf-audit`
+**Security:** `/security-audit`
 **Maintenance:** `/deps-update`, `/refactor`, `/migrate`
 **Docs:** `/docs-gen`, `/onboard`
 

@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>v2.1.0</strong> ·
-  <a href="#skills">12 Skills</a> ·
+  <a href="#skills">13 Skills</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="docs/ralph-comparison.md">vs Ralph Wiggum</a>
 </p>
@@ -17,20 +17,109 @@ This is a fork of [Ralph](https://github.com/snarktank/ralph) adapted for **Clau
 
 ## Quick Start
 
-```bash
-# 1. Clone Ralph
-git clone https://github.com/thecgaigroup/ralph-cc-loop ~/tools/ralph-cc-loop
+**Prerequisites:** Git, jq, gh CLI (see [Prerequisites](#prerequisites) for install instructions)
 
-# 2. Create a PRD from GitHub issues (in your project)
+### Step 1: Clone Ralph
+
+```bash
+git clone https://github.com/thecgaigroup/ralph-cc-loop ~/tools/ralph-cc-loop
+```
+
+### Step 2: Verify Installation
+
+```bash
+~/tools/ralph-cc-loop/ralph.sh --check-deps
+```
+
+You should see checkmarks (✓) for all dependencies. If anything fails, see [Verify Installation](#verify-installation) for details.
+
+### Step 3: Install the Plugin
+
+Load Ralph's skills (like `/prd` and `/review-issues`):
+
+```bash
+claude --plugin-dir ~/tools/ralph-cc-loop
+```
+
+After Claude Code starts, verify the plugin loaded by checking that `/prd` appears in command suggestions.
+
+> **Note:** This loads the plugin for one session. For permanent installation, see [Install Plugin](#install-plugin-for-prd-qa-audit-etc).
+
+### Step 4: Create a PRD
+
+**Option A: From GitHub issues** (if your project has issues)
+```bash
 cd ~/Projects/my-app
 claude /review-issues --issue 42
+```
 
-# 3. Run Ralph
+**Option B: Describe your feature** (interactive)
+```bash
+cd ~/Projects/my-app
+claude /prd "Add user authentication with login and logout"
+```
+
+**Option C: Copy the example** (for testing)
+```bash
+cp ~/tools/ralph-cc-loop/prd.json.example ~/Projects/my-app/prd.json
+# Edit prd.json to match your project
+```
+
+This creates a `prd.json` file with user stories. Verify it exists:
+```bash
+cat ~/Projects/my-app/prd.json | jq '.project, .userStories | length'
+```
+Expected output (example):
+```
+"MyApp"
+4
+```
+
+### Step 5: Run Ralph
+
+```bash
 ~/tools/ralph-cc-loop/ralph.sh ~/Projects/my-app
+```
 
-# 4. Review and merge PRs when done
+Ralph will:
+1. Create a feature branch
+2. Pick the first eligible story
+3. Implement it and commit
+4. Mark it complete in `prd.json`
+5. Repeat until all stories pass or max iterations reached
+
+Monitor progress:
+```bash
+# In another terminal
+tail -f ~/Projects/my-app/progress.txt
+```
+
+### Step 6: Review and Merge
+
+When Ralph finishes (or you want to review progress):
+```bash
+# Check status
+~/tools/ralph-cc-loop/ralph.sh status ~/Projects/my-app
+
+# Review the PR on GitHub
+gh pr view --web
+
+# Or use the review skill
 claude /review-prs --auto-merge
 ```
+
+### Quick Start Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `jq: command not found` | Missing dependency | Run `--check-deps`, install missing tools |
+| `/prd` not recognized | Plugin not loaded | Run `claude --plugin-dir ~/tools/ralph-cc-loop` |
+| `prd.json not found` | No PRD created | Run `/prd` or copy `prd.json.example` |
+| `No eligible stories` | All stories blocked or complete | Check `dependsOn` fields in prd.json |
+| `gh: not authenticated` | GitHub CLI not logged in | Run `gh auth login` |
+| Permission denied | Script not executable | Run `chmod +x ~/tools/ralph-cc-loop/ralph.sh` |
+
+For more detailed troubleshooting, see [Plugin Troubleshooting](#troubleshooting-plugin-issues).
 
 ## How I Actually Use Ralph
 
@@ -93,21 +182,209 @@ Claude shows you a formatted table with story status, current iteration, and con
 
 ## Prerequisites
 
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
-- `jq` installed (`brew install jq` on macOS)
-- `gh` (GitHub CLI) installed and authenticated
+### Required
+
+| Tool | Min Version | Purpose |
+|------|-------------|---------|
+| [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | Latest | Core AI agent |
+| `bash` | 4.0+ | Shell (script runner) |
+| `git` | 2.0+ | Version control |
+| `jq` | 1.6+ | JSON processing |
+| `gh` | 2.0+ | GitHub CLI for PRs/issues |
+
+**Also required:**
 - A git repository for your project
 - Claude Code Max subscription ($200/month) recommended for heavy usage
 
-### GitHub CLI Setup
+### Installation by Platform
 
-Ralph uses `gh` for creating PRs and fetching issues:
+<details>
+<summary><strong>macOS (Homebrew)</strong></summary>
 
 ```bash
-# Install GitHub CLI
-brew install gh
+# Install Homebrew if needed: https://brew.sh
+brew install git jq gh
 
-# Authenticate (one-time)
+# Claude Code CLI (see Anthropic docs for latest)
+# https://docs.anthropic.com/en/docs/claude-code
+
+# Authenticate GitHub CLI
+gh auth login
+```
+
+**Note:** macOS includes bash 3.2 by default. Ralph works with bash 3.2+, but bash 4.0+ is recommended:
+```bash
+brew install bash
+```
+</details>
+
+<details>
+<summary><strong>Linux (Debian/Ubuntu)</strong></summary>
+
+```bash
+# Update package list
+sudo apt update
+
+# Install dependencies
+sudo apt install -y git jq
+
+# Install GitHub CLI
+# See: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+(type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) \
+  && sudo mkdir -p -m 755 /etc/apt/keyrings \
+  && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+  && cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+  && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+  && sudo apt update \
+  && sudo apt install gh -y
+
+# Claude Code CLI (see Anthropic docs for latest)
+# https://docs.anthropic.com/en/docs/claude-code
+
+# Authenticate GitHub CLI
+gh auth login
+```
+</details>
+
+<details>
+<summary><strong>Linux (Fedora/RHEL/CentOS)</strong></summary>
+
+```bash
+# Install dependencies
+sudo dnf install -y git jq
+
+# Install GitHub CLI
+sudo dnf install -y 'dnf-command(config-manager)'
+sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+sudo dnf install -y gh
+
+# Claude Code CLI (see Anthropic docs for latest)
+# https://docs.anthropic.com/en/docs/claude-code
+
+# Authenticate GitHub CLI
+gh auth login
+```
+</details>
+
+<details>
+<summary><strong>Windows (WSL)</strong></summary>
+
+Ralph requires a Unix-like environment. On Windows, use WSL (Windows Subsystem for Linux):
+
+```powershell
+# 1. Install WSL (run in PowerShell as Administrator)
+wsl --install
+
+# 2. Restart your computer, then open Ubuntu from Start menu
+```
+
+After WSL is installed, open your Ubuntu terminal and follow the **Linux (Debian/Ubuntu)** instructions above.
+
+**Important WSL notes:**
+- Run Ralph from within WSL, not from PowerShell/CMD
+- Use Linux-style paths: `/home/user/projects` not `C:\Users\user\projects`
+- Your Windows files are accessible at `/mnt/c/Users/...` but native Linux paths are faster
+- Git repos should be cloned inside WSL for best performance
+
+```bash
+# Example: Clone projects to WSL home directory
+mkdir -p ~/Projects
+cd ~/Projects
+git clone https://github.com/your-org/your-project
+
+# Clone Ralph
+git clone https://github.com/thecgaigroup/ralph-cc-loop ~/tools/ralph-cc-loop
+
+# Run Ralph
+~/tools/ralph-cc-loop/ralph.sh ~/Projects/your-project
+```
+</details>
+
+### Verify Installation
+
+Ralph includes a built-in verification command that checks everything is set up correctly:
+
+```bash
+./ralph.sh --check-deps
+```
+
+Example output:
+```
+╔═══════════════════════════════════════════════════════╗
+║           Ralph Installation Verification             ║
+╚═══════════════════════════════════════════════════════╝
+
+  Checking required dependencies...
+
+✓ bash: 4.4.23 (>= 4.0 recommended)
+✓ git: 2.47.1 (>= 2.0 required)
+✓ jq: 1.7.1 (>= 1.6 required)
+✓ gh: 2.83.1 (>= 2.0 required)
+✓ claude: 2.1.11
+
+  Checking authentication...
+
+✓ gh auth: logged in as your-username
+✓ claude auth: configured (config directory exists)
+
+  Checking Ralph installation...
+
+✓ plugin.json: valid (v2.1.0)
+✓ skills/: 13 skill(s) found
+✓ prompt.md: found
+
+  ────────────────────────────────────────────────────
+  ✓ All checks passed! Ralph is ready to use.
+  ────────────────────────────────────────────────────
+```
+
+The verification checks:
+- **Dependencies**: bash, git, jq, gh, claude (with minimum version requirements)
+- **Authentication**: GitHub CLI login status, Claude CLI configuration
+- **Installation**: Plugin structure, skills directory, essential files
+
+### Manual Version Check
+
+If you prefer to check versions manually:
+
+```bash
+bash --version && git --version && jq --version && gh --version
+```
+
+### Platform-Specific Notes
+
+| Platform | Notes |
+|----------|-------|
+| macOS | Works out of the box. Uses `~` for home directory. |
+| Linux | Works out of the box. Uses `~` for home directory. |
+| Windows | **Requires WSL.** Native Windows (PowerShell/CMD) is not supported. |
+
+The `gh auth login` command works identically across all platforms.
+
+### Optional (for specific skills)
+
+Skills may require additional tools depending on your project type:
+
+| Tool Category | Examples | Used By |
+|---------------|----------|---------|
+| Node.js | `npm`, `npx`, `yarn`, `pnpm` | `/deps-update`, `/test-coverage`, `/security-audit` |
+| Python | `pip`, `pytest`, `pip-audit` | `/deps-update`, `/test-coverage`, `/security-audit` |
+| Ruby | `bundle`, `gem` | `/deps-update`, `/security-audit` |
+| Go | `go`, `govulncheck` | `/deps-update`, `/security-audit` |
+| Rust | `cargo` | `/deps-update`, `/security-audit` |
+| Accessibility | `axe`, `pa11y` | `/a11y-audit` |
+| Performance | `lighthouse` | `/perf-audit` |
+| Testing | `jest`, `vitest`, `playwright`, `cypress` | `/test-coverage`, `/qa-audit` |
+
+Skills auto-detect available tools and skip unavailable features gracefully.
+
+### GitHub CLI Setup
+
+Ralph uses `gh` for creating PRs and fetching issues. After installing `gh` (see [Installation by Platform](#installation-by-platform)), authenticate:
+
+```bash
+# Authenticate (one-time, works on all platforms)
 gh auth login
 ```
 
@@ -133,6 +410,8 @@ LOCAL MACHINE
     ├── prd.json
     └── ...
 ```
+
+**Path note:** `~` refers to your home directory (`/Users/you` on macOS, `/home/you` on Linux/WSL). You can install Ralph anywhere; `~/tools/` is just a suggestion.
 
 ### Multiple Projects
 
@@ -160,28 +439,132 @@ alias ralph="~/tools/ralph-cc-loop/ralph.sh"
 
 ### Install Plugin (for /prd, /qa-audit, etc.)
 
-To use the skills as slash commands, install the plugin:
+Ralph includes 13 skills as slash commands. There are two ways to use them:
+
+#### Option 1: Session-only (recommended for testing)
+
+Use `--plugin-dir` to load the plugin for a single session:
 
 ```bash
-# Validate the plugin
-claude plugin validate ~/tools/ralph-cc-loop
-
-# Install globally (copy to Claude plugins cache)
-mkdir -p ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0
-cp -R ~/tools/ralph-cc-loop/.claude-plugin/* ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0/
-
-# Add to installed plugins
-# (Or restart Claude Code and use --plugin-dir flag once)
 claude --plugin-dir ~/tools/ralph-cc-loop
 ```
 
-After installation, restart Claude Code to use all 12 skills:
-- Core: `/prd`, `/review-issues`, `/review-prs`
-- Quality: `/qa-audit`, `/test-coverage`, `/a11y-audit`, `/perf-audit`
-- Maintenance: `/deps-update`, `/refactor`, `/migrate`
-- Docs: `/docs-gen`, `/onboard`
+The plugin is only active for this session. When you exit Claude Code, the plugin is unloaded.
 
-Then run against any project:
+**Expected behavior:**
+- Type `/prd` and see it in the command list
+- Skills work immediately, no restart needed
+- You'll see "ralph-claude-code (2.1.0)" in active plugins
+
+#### Option 2: Permanent installation
+
+Install permanently to use skills in every Claude Code session:
+
+**Step 1: Validate the plugin**
+```bash
+claude plugin validate ~/tools/ralph-cc-loop
+```
+
+Expected output:
+```
+✓ Plugin manifest is valid
+  Name: ralph-claude-code
+  Version: 2.1.0
+  Skills: 13
+```
+
+**Step 2: Install to cache**
+```bash
+mkdir -p ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0
+cp -R ~/tools/ralph-cc-loop/.claude-plugin/* ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0/
+```
+
+**Step 3: Register the plugin**
+
+Start Claude Code once with `--plugin-dir` to register it:
+```bash
+claude --plugin-dir ~/tools/ralph-cc-loop
+```
+
+After this, restart Claude Code. The plugin will be loaded automatically.
+
+**Step 4: Verify installation**
+```bash
+claude plugin list
+```
+
+Expected output includes:
+```
+  ralph-claude-code  2.1.0  local  ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0
+```
+
+#### Available Skills After Installation
+
+| Category | Skills |
+|----------|--------|
+| Core | `/prd`, `/review-issues`, `/review-prs` |
+| Quality | `/qa-audit`, `/test-coverage`, `/a11y-audit`, `/perf-audit` |
+| Security | `/security-audit` |
+| Maintenance | `/deps-update`, `/refactor`, `/migrate` |
+| Docs | `/docs-gen`, `/onboard` |
+
+#### Updating the Plugin
+
+When you pull new changes to Ralph:
+
+```bash
+# 1. Update Ralph
+cd ~/tools/ralph-cc-loop
+git pull
+
+# 2. Check if version changed
+cat .claude-plugin/plugin.json | grep version
+
+# 3. Reinstall (adjust version number as needed)
+mkdir -p ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0
+cp -R .claude-plugin/* ~/.claude/plugins/cache/local/ralph-claude-code/2.1.0/
+
+# 4. Restart Claude Code
+```
+
+If the version number changed (e.g., 2.1.0 → 2.2.0), update the path in step 3.
+
+#### Uninstalling the Plugin
+
+```bash
+# Remove from cache
+rm -rf ~/.claude/plugins/cache/local/ralph-claude-code
+
+# Restart Claude Code
+```
+
+The plugin will no longer load.
+
+#### Troubleshooting Plugin Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Skills not appearing | Plugin not loaded | Run `claude plugin list` to check. Re-run `--plugin-dir` or reinstall. |
+| "Plugin manifest is invalid" | Corrupted or old plugin.json | `git pull` to get latest, then reinstall |
+| Skills appear but error on run | Missing skill files | Reinstall: copy `.claude-plugin/*` to cache again |
+| "Cannot find skill" after restart | Registration not saved | Delete cache, reinstall from Step 2 |
+| Plugin version mismatch | Cache has old version | Delete old version folder, create new one with correct version |
+
+**Debug tips:**
+```bash
+# Check what's installed
+claude plugin list
+
+# Check cache contents
+ls -la ~/.claude/plugins/cache/local/ralph-claude-code/
+
+# Validate plugin structure
+claude plugin validate ~/tools/ralph-cc-loop
+```
+
+#### Using Skills (After Installation)
+
+Run any skill from Claude Code:
 ```bash
 ~/tools/ralph-cc-loop/ralph.sh ~/Projects/my-app
 # or with alias:
@@ -403,15 +786,126 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 |------|----------|---------|
 | `ralph.sh` | Ralph install | The bash loop that spawns Claude Code instances |
 | `prompt.md` | Ralph install | Instructions given to each Claude Code instance |
-| `.claude-plugin/` | Ralph install | Plugin manifest and skills (12 skills - see below) |
+| `.claude-plugin/` | Ralph install | Plugin manifest and skills (13 skills - see below) |
 | `prd.json` | Target project | User stories with `passes` status |
 | `progress.txt` | Target project | Append-only learnings (created by Ralph) |
 | `ralph-output.log` | Target project | Full Claude output (created by Ralph) |
 | `archive/` | Target project | Previous run archives (created by Ralph) |
 
+## Configuration & Files
+
+Ralph is designed to work without configuration. There are no environment variables to set or config files to create—just run `ralph.sh` with a `prd.json` in your project.
+
+### Files Overview
+
+Ralph creates and manages files in two locations:
+
+**In Ralph's install directory** (read-only, you edit these):
+| File | Purpose |
+|------|---------|
+| `ralph.sh` | Main loop script |
+| `prompt.md` | Instructions sent to Claude each iteration |
+| `.claude-plugin/plugin.json` | Plugin manifest (version, name) |
+| `.claude-plugin/skills/*.md` | 13 skill definitions |
+
+**In your target project** (Ralph creates/modifies these):
+| File | Purpose | Created When |
+|------|---------|--------------|
+| `prd.json` | Your PRD with user stories | You create this (or use `/prd`, `/review-issues`) |
+| `progress.txt` | Append-only learnings log | First Ralph run |
+| `ralph-output.log` | Full Claude output from all iterations | First Ralph run |
+| `.last-branch` | Tracks current PRD branch name | First Ralph run |
+| `archive/` | Previous run archives (see below) | When switching PRDs |
+
+### Auto-Created Files
+
+**progress.txt** - Created on first run with header:
+```
+# Ralph Progress Log
+# Project: [project name from prd.json]
+# Location: /path/to/project
+# Started: Sat Jan 10 12:00:00 EST 2026
+```
+Each iteration appends learnings. This file is **append-only**—Ralph never deletes or overwrites content.
+
+**ralph-output.log** - Created on first run, contains the complete Claude output from every iteration. Useful for debugging or reviewing what Claude did.
+
+**.last-branch** - Contains the current PRD's `branchName` value. Used internally to detect when you switch to a different PRD.
+
+### Archive System
+
+When Ralph detects you've started a new PRD (different `branchName` in prd.json), it automatically archives the previous run:
+
+```
+archive/
+└── my-project/                     ← Sanitized project name
+    └── 2026-01-10-feature-auth/    ← Date + branch name
+        ├── prd.json                ← Snapshot of completed PRD
+        ├── progress.txt            ← Full progress log
+        └── ralph-output.log        ← Full output log
+```
+
+**Archive triggers when:**
+- The `branchName` in prd.json differs from the value in `.last-branch`
+- Both the old and new prd.json files exist and are valid
+
+**Archive does NOT trigger when:**
+- First run (no `.last-branch` file exists)
+- Same `branchName` as before
+- Missing or invalid prd.json
+
+After archiving, `progress.txt` and `ralph-output.log` are reset for the new run. The archive preserves your complete history.
+
+### Environment Variables
+
+Ralph does not use or require any environment variables. All configuration comes from:
+- Command-line arguments (`./ralph.sh [project] [iterations]`)
+- The prd.json file in your project
+
+### Customizing Behavior
+
+**prompt.md** - Edit this file to change how Claude approaches each iteration. Common customizations:
+- Add project-specific quality check commands
+- Include codebase conventions Claude should follow
+- Add common gotchas for your tech stack
+- Modify the commit message format
+
+**prd.json plugins** - Specify Claude Code plugins Ralph should use:
+```json
+{
+  "plugins": {
+    "recommended": ["commit-commands", "security-guidance"],
+    "optional": ["code-simplifier"]
+  }
+}
+```
+
+**Story structure** - Control execution order with `priority` and `dependsOn`:
+```json
+{
+  "id": "US-002",
+  "dependsOn": ["US-001"],  // Won't run until US-001 passes
+  "priority": 2             // Lower number = higher priority
+}
+```
+
+### Adding to .gitignore
+
+Ralph-generated files in your project are typically not committed. Add to your project's `.gitignore`:
+
+```gitignore
+# Ralph files
+progress.txt
+ralph-output.log
+.last-branch
+archive/
+```
+
+The `prd.json` is often committed so team members can continue a PRD or review the stories.
+
 ## Skills
 
-Ralph includes 12 skills for common workflows. Run any skill with `claude /skill-name`.
+Ralph includes 13 skills for common workflows. Run any skill with `claude /skill-name`.
 
 ### Core Workflow Skills
 
@@ -441,6 +935,18 @@ claude /qa-audit ~/Projects/my-app --env staging
 claude /test-coverage ~/Projects/my-app
 claude /a11y-audit ~/Projects/my-app --level AA
 claude /perf-audit ~/Projects/my-app --focus frontend
+```
+
+### Security Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `/security-audit` | Comprehensive security audit: OWASP Top 10, secrets, vulnerabilities |
+
+```bash
+claude /security-audit ~/Projects/my-app
+claude /security-audit ~/Projects/my-app --level thorough
+claude /security-audit ~/Projects/my-app --fix
 ```
 
 ### Maintenance Skills
@@ -583,6 +1089,30 @@ claude /perf-audit ~/Projects/my-app --focus all
 - API response times
 - Database queries
 - Caching strategy
+
+#### `/security-audit` - Security Audit
+
+Run a comprehensive security audit on any project:
+
+```bash
+claude /security-audit ~/Projects/my-app
+claude /security-audit ~/Projects/my-app --level thorough --fix
+```
+
+**What it audits:**
+- Secrets & credentials (hardcoded keys, tokens, passwords)
+- Dependency vulnerabilities (npm audit, pip audit, etc.)
+- OWASP Top 10 (injection, XSS, broken auth, etc.)
+- Authentication & authorization patterns
+- Input validation & sanitization
+- Security headers & CORS
+- File upload security
+- API security
+
+**Audit levels:**
+- `basic`: Quick scan - secrets, dependencies, obvious issues
+- `standard` (default): Full OWASP Top 10 scan
+- `thorough`: Deep scan with code flow analysis and threat modeling
 
 #### `/refactor` - Code Refactoring
 

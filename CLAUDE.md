@@ -17,7 +17,7 @@ Ralph is an autonomous AI agent loop that runs Claude Code CLI repeatedly to imp
 │  ~/tools/ralph-claude-code/     (Ralph install directory)  │
 │  ├── ralph.sh                   ← Run from here            │
 │  ├── prompt.md                  ← Instructions for Claude  │
-│  └── .claude-plugin/skills/     ← 12 skills (see below)    │
+│  └── .claude-plugin/skills/     ← 13 skills (see below)    │
 │                                                             │
 │  ~/Projects/my-app/             (Target project)           │
 │  ├── prd.json                   ← Ralph reads this         │
@@ -78,7 +78,7 @@ Ralph is an autonomous AI agent loop that runs Claude Code CLI repeatedly to imp
 | Requirement | Install | Purpose |
 |-------------|---------|---------|
 | `jq` | `brew install jq` | JSON parsing |
-| `claude` | [Claude Code docs](https://docs.anthropic.com/claude-code) | AI agent |
+| `claude` | [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code) | AI agent |
 | `gh` | `brew install gh` | GitHub CLI |
 | `prd.json` | Create in project | Task list |
 
@@ -104,7 +104,7 @@ The repo is determined in this order:
 |------|---------|
 | `ralph.sh` | Bash loop that spawns Claude Code instances with `--print --dangerously-skip-permissions` |
 | `prompt.md` | Instructions fed to each Claude Code instance |
-| `.claude-plugin/` | Plugin manifest (v2.1.0) and 12 skills |
+| `.claude-plugin/` | Plugin manifest (v2.1.0) and 13 skills |
 
 ### Per-Project Files (created in target project)
 
@@ -113,6 +113,32 @@ The repo is determined in this order:
 | `prd.json` | User stories with `passes` status |
 | `progress.txt` | Append-only learnings for future iterations |
 | `ralph-output.log` | Full Claude output from all iterations |
+| `.last-branch` | Tracks current branch for archiving |
+| `archive/` | Previous run archives |
+
+### Auto-Created Files Detail
+
+**progress.txt** - Created on first run with project header. Append-only—Ralph never deletes content.
+
+**ralph-output.log** - Complete Claude output from every iteration. Useful for debugging.
+
+**.last-branch** - Contains current PRD's `branchName`. Triggers archiving when value changes.
+
+**archive/** - When Ralph detects a new PRD (different `branchName`), it archives the previous run:
+```
+archive/
+└── project-name/
+    └── 2026-01-10-feature-name/
+        ├── prd.json
+        ├── progress.txt
+        └── ralph-output.log
+```
+
+### Environment Variables
+
+Ralph does not use any environment variables. All configuration comes from:
+- Command-line arguments (`./ralph.sh [project] [iterations]`)
+- The `prd.json` file in the target project
 
 ## Modes
 
@@ -198,7 +224,7 @@ Common skip reasons (logged to progress.txt):
 
 ## Skills
 
-Ralph includes 12 skills organized into four categories:
+Ralph includes 13 skills organized into five categories:
 
 ### Core Workflow
 | Skill | Purpose |
@@ -214,6 +240,11 @@ Ralph includes 12 skills organized into four categories:
 | `/test-coverage` | Find untested code and generate tests |
 | `/a11y-audit` | WCAG accessibility audit and remediation |
 | `/perf-audit` | Performance profiling and optimization |
+
+### Security
+| Skill | Purpose |
+|-------|---------|
+| `/security-audit` | OWASP Top 10, secrets detection, dependency vulnerabilities |
 
 ### Maintenance
 | Skill | Purpose |
