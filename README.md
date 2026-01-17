@@ -331,7 +331,7 @@ Example output:
   Checking Ralph installation...
 
 ✓ plugin.json: valid (v2.1.0)
-✓ skills/: 13 skill(s) found
+✓ skills/: 17 skill(s) found
 ✓ prompt.md: found
 
   ────────────────────────────────────────────────────
@@ -439,7 +439,7 @@ alias ralph="~/tools/ralph-cc-loop/ralph.sh"
 
 ### Install Plugin (for /prd, /qa-audit, etc.)
 
-Ralph includes 13 skills as slash commands. There are two ways to use them:
+Ralph includes 17 skills as slash commands. There are two ways to use them:
 
 #### Option 1: Session-only (recommended for testing)
 
@@ -786,7 +786,7 @@ cat ~/Projects/my-app/prd.json | jq '.userStories[] | {id, title, passes}'
 |------|----------|---------|
 | `ralph.sh` | Ralph install | The bash loop that spawns Claude Code instances |
 | `prompt.md` | Ralph install | Instructions given to each Claude Code instance |
-| `.claude-plugin/` | Ralph install | Plugin manifest and skills (13 skills - see below) |
+| `.claude-plugin/` | Ralph install | Plugin manifest and skills (17 skills - see below) |
 | `prd.json` | Target project | User stories with `passes` status |
 | `progress.txt` | Target project | Append-only learnings (created by Ralph) |
 | `ralph-output.log` | Target project | Full Claude output (created by Ralph) |
@@ -806,7 +806,7 @@ Ralph creates and manages files in two locations:
 | `ralph.sh` | Main loop script |
 | `prompt.md` | Instructions sent to Claude each iteration |
 | `.claude-plugin/plugin.json` | Plugin manifest (version, name) |
-| `.claude-plugin/skills/*.md` | 13 skill definitions |
+| `.claude-plugin/skills/*.md` | 17 skill definitions |
 
 **In your target project** (Ralph creates/modifies these):
 | File | Purpose | Created When |
@@ -905,7 +905,7 @@ The `prd.json` is often committed so team members can continue a PRD or review t
 
 ## Skills
 
-Ralph includes 13 skills for common workflows. Run any skill with `claude /skill-name`.
+Ralph includes 17 skills for common workflows. Run any skill with `claude /skill-name`.
 
 ### Core Workflow Skills
 
@@ -949,6 +949,19 @@ claude /security-audit ~/Projects/my-app --level thorough
 claude /security-audit ~/Projects/my-app --fix
 ```
 
+### Code Analysis Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `/dead-code` | Find unused dependencies, exports, and orphan files |
+| `/architecture-review` | Comprehensive architecture analysis and recommendations |
+
+```bash
+claude /dead-code ~/Projects/my-app
+claude /dead-code ~/Projects/my-app --fix --scope deps
+claude /architecture-review ~/Projects/my-app --focus cloud --cloud aws
+```
+
 ### Maintenance Skills
 
 | Skill | Purpose |
@@ -968,11 +981,15 @@ claude /migrate ~/Projects/my-app react-18-to-19
 | Skill | Purpose |
 |-------|---------|
 | `/docs-gen` | Generate/update README, API docs, architecture docs |
+| `/api-docs` | Generate OpenAPI/Swagger specs from code |
 | `/onboard` | Create new developer onboarding documentation |
+| `/changelog` | Generate CHANGELOG.md from git history and PRs |
 
 ```bash
 claude /docs-gen ~/Projects/my-app
+claude /api-docs ~/Projects/my-api --include-examples
 claude /onboard ~/Projects/my-app
+claude /changelog ~/Projects/my-app --version 2.0.0
 ```
 
 ---

@@ -17,7 +17,7 @@ Ralph is an autonomous AI agent loop that runs Claude Code CLI repeatedly to imp
 │  ~/tools/ralph-claude-code/     (Ralph install directory)  │
 │  ├── ralph.sh                   ← Run from here            │
 │  ├── prompt.md                  ← Instructions for Claude  │
-│  └── .claude-plugin/skills/     ← 13 skills (see below)    │
+│  └── .claude-plugin/skills/     ← 17 skills (see below)    │
 │                                                             │
 │  ~/Projects/my-app/             (Target project)           │
 │  ├── prd.json                   ← Ralph reads this         │
@@ -104,7 +104,7 @@ The repo is determined in this order:
 |------|---------|
 | `ralph.sh` | Bash loop that spawns Claude Code instances with `--print --dangerously-skip-permissions` |
 | `prompt.md` | Instructions fed to each Claude Code instance |
-| `.claude-plugin/` | Plugin manifest (v2.1.0) and 13 skills |
+| `.claude-plugin/` | Plugin manifest (v2.1.0) and 17 skills |
 
 ### Per-Project Files (created in target project)
 
@@ -224,7 +224,7 @@ Common skip reasons (logged to progress.txt):
 
 ## Skills
 
-Ralph includes 13 skills organized into five categories:
+Ralph includes 17 skills organized into six categories:
 
 ### Core Workflow
 | Skill | Purpose |
@@ -240,11 +240,13 @@ Ralph includes 13 skills organized into five categories:
 | `/test-coverage` | Find untested code and generate tests |
 | `/a11y-audit` | WCAG accessibility audit and remediation |
 | `/perf-audit` | Performance profiling and optimization |
+| `/security-audit` | OWASP Top 10, secrets detection, dependency vulnerabilities |
 
-### Security
+### Code Analysis
 | Skill | Purpose |
 |-------|---------|
-| `/security-audit` | OWASP Top 10, secrets detection, dependency vulnerabilities |
+| `/dead-code` | Find unused dependencies, exports, and orphan files |
+| `/architecture-review` | Comprehensive architecture analysis and recommendations |
 
 ### Maintenance
 | Skill | Purpose |
@@ -257,16 +259,20 @@ Ralph includes 13 skills organized into five categories:
 | Skill | Purpose |
 |-------|---------|
 | `/docs-gen` | Generate/update README, API docs, architecture docs |
+| `/api-docs` | Generate OpenAPI/Swagger specs from code |
 | `/onboard` | Create new developer onboarding documentation |
+| `/changelog` | Generate CHANGELOG.md from git history and PRs |
 
 ### Examples
 ```bash
 claude /review-issues --repo owner/repo --issue 13,14,15
-claude /review-issues --repo owner/repo --label bug
 claude /review-prs --auto-merge --dependabot-only
 claude /qa-audit ~/Projects/my-app --env staging
-claude /deps-update ~/Projects/my-app
-claude /test-coverage ~/Projects/my-app
+claude /security-audit ~/Projects/my-app --level thorough
+claude /dead-code ~/Projects/my-app --fix
+claude /architecture-review ~/Projects/my-app --focus cloud
+claude /api-docs ~/Projects/my-api --include-examples
+claude /changelog ~/Projects/my-app --version 2.0.0
 ```
 
 ## Scheduling Ralph (macOS launchd)
