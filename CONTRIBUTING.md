@@ -185,7 +185,7 @@ ralph-cc-loop/
 ├── prompt.md             # Instructions sent to each Claude instance
 ├── .claude-plugin/       # Claude Code plugin
 │   ├── plugin.json       # Plugin manifest with version
-│   └── skills/           # 13 Claude Code skills
+│   └── skills/           # 17 Claude Code skills
 │       ├── prd.md            # /prd - PRD generation
 │       ├── review-issues.md  # /review-issues - GitHub issue review
 │       ├── review-prs.md     # /review-prs - PR review
@@ -197,8 +197,12 @@ ralph-cc-loop/
 │       ├── refactor.md       # /refactor - Code refactoring
 │       ├── migrate.md        # /migrate - Framework migrations
 │       ├── docs-gen.md       # /docs-gen - Documentation generation
+│       ├── api-docs.md       # /api-docs - OpenAPI spec generation
 │       ├── onboard.md        # /onboard - Onboarding docs
-│       └── security-audit.md # /security-audit - Security audit
+│       ├── changelog.md      # /changelog - Changelog generation
+│       ├── security-audit.md # /security-audit - Security audit
+│       ├── dead-code.md      # /dead-code - Unused code detection
+│       └── architecture-review.md # /architecture-review - Architecture analysis
 ├── docs/                 # Additional documentation
 │   ├── ralph-comparison.md   # Comparison with ralph-wiggum
 │   └── images/               # Documentation images

@@ -1,6 +1,6 @@
 # Ralph Comparison: ralph-cc-loop vs ralph-wiggum
 
-> **Ralph v2.1.0** includes 13 skills for comprehensive project automation.
+> **Ralph v2.1.0** includes 17 skills for comprehensive project automation.
 
 This document compares the two Ralph systems available for iterative Claude Code execution.
 
@@ -84,9 +84,9 @@ email verification, password reset, and role-based permissions"
 # Ralph breaks it into ~8-12 right-sized stories with dependencies
 ```
 
-### 13 Automation Skills
+### 17 Automation Skills
 
-The Claude Code version includes 13 skills that the Amp version doesn't have:
+The Claude Code version includes 17 skills that the Amp version doesn't have:
 
 | Skill | What It Does | Amp Equivalent |
 |-------|--------------|----------------|
@@ -97,12 +97,16 @@ The Claude Code version includes 13 skills that the Amp version doesn't have:
 | `/test-coverage` | Finds gaps, generates tests | ❌ None |
 | `/a11y-audit` | WCAG accessibility audit | ❌ None |
 | `/perf-audit` | Performance profiling | ❌ None |
+| `/security-audit` | Security vulnerabilities & OWASP | ❌ None |
+| `/dead-code` | Find unused deps, exports, files | ❌ None |
+| `/architecture-review` | Architecture analysis & recommendations | ❌ None |
 | `/deps-update` | Dependency updates + security fixes | ❌ Manual |
 | `/refactor` | Code smell detection + fixes | ❌ None |
 | `/migrate` | Framework/version migrations | ❌ None |
 | `/docs-gen` | Auto-generate documentation | ❌ None |
+| `/api-docs` | Generate OpenAPI/Swagger specs | ❌ None |
 | `/onboard` | Create onboarding docs | ❌ None |
-| `/security-audit` | Security vulnerabilities & OWASP | ❌ None |
+| `/changelog` | Generate CHANGELOG from git history | ❌ None |
 
 ### End-to-End Automation
 
